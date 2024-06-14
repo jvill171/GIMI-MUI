@@ -1,0 +1,41 @@
+# Python-specific
+*.pyc
+__pycache__/
+
+# Virtual environment
+venv/
+myenv/
+
+# IDE or editor specific
+.vscode/
+.idea/
+
+# Compiled files
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Other generated files
+*.bak
+*.csv
+
+# Exclude .lnk files
+*.lnk
+
+#Exclude sandbox directory
+GameName/
+
+# Include main.ui
+!main.ui
