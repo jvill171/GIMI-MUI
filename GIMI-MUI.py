@@ -1,11 +1,19 @@
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QPushButton, QGraphicsScene, QGraphicsPixmapItem, QGraphicsTextItem
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QGraphicsScene, QGraphicsPixmapItem, QGraphicsTextItem
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import Qt, QSettings
-from PyQt5.QtGui import QPixmap, QFont, QIcon
-import sys, os, shutil, datetime
+from PyQt5.QtGui import QPixmap, QFont
+import sys, os, datetime
+from enum import Enum
 
 class Main(QMainWindow):
+    
+    # color of error messages
+    class Color(Enum):
+        SUCCESS = '#188524'
+        WARNING = '#DC9752'
+        ERROR = '#B30000'
+        INFO = '#5050FF'
+
     def __init__(self):
         """
         Initialize the Main window.
@@ -29,6 +37,10 @@ class Main(QMainWindow):
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowMaximizeButtonHint)  # Disable maximize button
         self.setSignals()
         self.setupSettings()    # Set up any values for settings
+
+        self.addModButton.setText("\u2B9D")  # Unicode for ⮝
+        self.removeModButton.setText("\u2B9F")  # Unicode for ⮟
+
         self.populatePatchSelector()
         
         # self.setFixedSize(500, 500);
@@ -48,13 +60,12 @@ class Main(QMainWindow):
         # Buttons
         self.browseButton.clicked.connect(self.openFileDialog)
         self.refreshButton.clicked.connect(self.setModDirs)
-        self.addModButton.clicked.connect(lambda: self.moveMods(self.disabledModList, self.enabledModList, "Disabled", "Enabled"))    # Disabled => Enabled
-        self.removeModButton.clicked.connect(lambda: self.moveMods(self.enabledModList, self.disabledModList, "Enabled", "Disabled")) # Enabled => Disabled
+        self.addModButton.clicked.connect(lambda: self.moveMods(self.disabledModList, self.enabledModList, "Disabled"))    # Disabled => Enabled
+        self.removeModButton.clicked.connect(lambda: self.moveMods(self.enabledModList, self.disabledModList, "Enabled")) # Enabled => Disabled
         
         # Connect current item change to updatePreview method
         self.enabledModList.currentItemChanged.connect(lambda: self.updatePreview("Enabled"))
         self.disabledModList.currentItemChanged.connect(lambda: self.updatePreview("Disabled"))
-
 
 
     def setupSettings(self):
@@ -86,7 +97,7 @@ class Main(QMainWindow):
         modding_dir = self.selectedDirectoryLabel.text()
         
         if not os.path.exists(modding_dir):
-            self.logError(f"Directory {modding_dir} does not exist.")
+            self.logMessage(f"Directory {modding_dir} does not exist.", self.Color.ERROR)
             return
 
         enabled_mods = []
@@ -146,8 +157,22 @@ class Main(QMainWindow):
                 if os.path.isdir(item_path):
                     list_widget.addItem(item_name)
         except Exception as e:
-            self.logError(f"Error accessing directory: {e}")
+            self.logMessage(f"Error accessing directory: {e}", self.Color.ERROR)
     
+
+    def toggleWidget(self, widgets=[]):
+        """
+        Toggle the enabled state of the specified widgets.
+
+        This method flips the enabled state of each widget in the provided list.
+        If a widget is currently enabled, it will be disabled, and vice versa.
+
+        Parameters:
+        widgets (list): A list of widgets to toggle the enabled state for.
+        """
+        for widget in widgets:
+            widget.setEnabled(not widget.isEnabled())
+
 
     def moveMods(self, source_list, target_list, source_status):
         """
@@ -166,26 +191,34 @@ class Main(QMainWindow):
         directory rename.
         """
         selected_items = source_list.selectedItems()
+        self.toggleWidget([self.addModButton, self.removeModButton]) # Disable buttons while mods are being enabled/disabled
         for item in selected_items:
             item_name = item.text()
             mod_dir = self.findModDirectory(item_name)
             prefix = "DISABLED_"
 
             if not mod_dir:
-                self.logError(f"Error finding directory for {item_name}.")
+                self.logMessage(f"Error: Could not find directory for {item_name}.[ Refresh Mod List ]", self.Color.ERROR)
                 continue
-            
+
+            # Determine new directory name & path, for renaming
             if source_status == "Enabled":
-                dest_path = mod_dir[:-len(item_name)] + prefix + item_name
-            elif source_status == "":
-                dest_path = mod_dir[:-len(item_name)] + item_name[len(prefix):]
-            
+                new_item_name = prefix + item_name
+                new_status_msg = f"\u2796\u25BA Disabled {item_name}"
+            else:
+                new_item_name = item_name[len(prefix):]
+                new_status_msg = f"\u2795\u25BA Enabled {new_item_name}"
+            dest_path = mod_dir[:-len(item_name)] + new_item_name
+
             try:
-                os.rename(mod_dir, dest_path)  # Rename the directory
-                source_list.takeItem(source_list.row(item))  # Remove the item from source
-                target_list.addItem(dest_path.split(os.sep)[-1])  # Place item in target
+                os.rename(mod_dir, dest_path)  # Rename the directory, thus enabling/disabling
+                self.logMessage(new_status_msg)
+                # Move from one widget to the other
+                source_list.takeItem(source_list.row(item))
+                target_list.addItem(dest_path.split(os.sep)[-1])
             except Exception as e:
-                self.logError(f"Error renaming {item_name}. Please Refresh Mod List.\n\t {e}")
+                self.logMessage(f"Error renaming {item_name}. Try to [Refresh Mod List].\n\t {e}", self.Color.ERROR)
+        self.toggleWidget([self.addModButton, self.removeModButton]) # Enable buttons once more after mods have been enabled/disabled
 
 
     def findModDirectory(self, mod_name):
@@ -202,10 +235,7 @@ class Main(QMainWindow):
             for name in dirs:
                 if name == mod_name or name == f"DISABLED_{mod_name}":
                     return os.path.join(root, name)
-        return None
-
-
-
+        return ""
 
 
     def updatePreview(self, mod_status):
@@ -215,10 +245,8 @@ class Main(QMainWindow):
         # Determine the selected list based on mod_status
         if mod_status == "Enabled":
             selected_list = self.enabledModList
-            base_subdir = "Enabled"
-        elif mod_status == "Disabled":
+        else:
             selected_list = self.disabledModList
-            base_subdir = "Disabled"
 
         if selected_list:
             selected_item = selected_list.currentItem()
@@ -227,9 +255,7 @@ class Main(QMainWindow):
                 self.modNameLabel.setText(mod_name)
                 
                 # Construct directory paths
-                base_dir = self.selectedDirectoryLabel.text()
-                mod_dir = os.path.join(base_dir, base_subdir, mod_name)
-                preview_path = os.path.join(mod_dir, "preview.png")
+                preview_path = os.path.join(self.findModDirectory(mod_name), "preview.png")
                 
                 # Prepare the QGraphicsScene
                 scene = QGraphicsScene()
@@ -278,19 +304,18 @@ class Main(QMainWindow):
         self.patchSelector.addItems(py_exe_files)
 
 
-
-
-    def logError(self, error_message):
+    def logMessage(self, error_message, msg_type=Color.INFO):
         """
-        Logs an error message with a timestamp.
+        Logs a message with a timestamp.
 
         Parameters:
         error_message (str): The error message to log.
+        level (str): The type of message to log. Determines the color of the message.
         """
         current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        log_entry = f"[{current_time}] {error_message}"
+        color = msg_type.value
+        log_entry = f'[{current_time}] <span style="color:{color}">{error_message}</span>'
         self.errorLogTextEdit.append(log_entry)
-    
 
 
 if __name__ == '__main__':
