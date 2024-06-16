@@ -66,6 +66,12 @@ color: rgb(100,100,100)</string>
       <height>71</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <weight>75</weight>
+      <bold>true</bold>
+     </font>
+    </property>
     <property name="readOnly">
      <bool>true</bool>
     </property>
