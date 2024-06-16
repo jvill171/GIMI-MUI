@@ -66,6 +66,9 @@ color: rgb(100,100,100)</string>
       <height>71</height>
      </rect>
     </property>
+    <property name="readOnly">
+     <bool>true</bool>
+    </property>
    </widget>
    <widget class="QTabWidget" name="tabWidget">
     <property name="geometry">
@@ -159,7 +162,7 @@ QTabBar::tab:hover {
        <bool>false</bool>
       </property>
       <property name="styleSheet">
-       <string notr="true">background-color: rgb(243, 159, 149);</string>
+       <string notr="true">background-color: #F39F95;</string>
       </property>
       <property name="text">
        <string>⮟</string>
@@ -271,7 +274,7 @@ QTabBar::tab:hover {
        <bool>false</bool>
       </property>
       <property name="styleSheet">
-       <string notr="true">background-color: rgb(122, 225, 165);</string>
+       <string notr="true">background-color: #7ae1a5;</string>
       </property>
       <property name="text">
        <string>⮝</string>
