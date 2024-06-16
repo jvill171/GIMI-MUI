@@ -29,6 +29,7 @@ class Main(QMainWindow):
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowMaximizeButtonHint)  # Disable maximize button
         self.setSignals()
         self.setupSettings()    # Set up any values for settings
+        self.populatePatchSelector()
         
         # self.setFixedSize(500, 500);
 
@@ -38,21 +39,22 @@ class Main(QMainWindow):
         Connects signals from various buttons to their respective slots.
 
         - browseButton: Opens a file dialog to select a directory.
-        - refreshButton: Refreshes the list of active and inactive mods.
-        - addModButton: Moves selected items from inactiveModList to activeModList.
-        - removeModButton: Moves selected items from activeModList to inactiveModList.
-        - activeModList: Updates the mod name label when the current item changes.
-        - inactiveModList: Updates the mod name label when the current item changes.
+        - refreshButton: Refreshes the list of enabled and disabled mods.
+        - addModButton: Moves selected items from disabledModList to enabledModList.
+        - removeModButton: Moves selected items from enabledModList to disabledModList.
+        - enabledModList: Updates the mod name label when the current item changes.
+        - disabledModList: Updates the mod name label when the current item changes.
         """
         # Buttons
         self.browseButton.clicked.connect(self.openFileDialog)
         self.refreshButton.clicked.connect(self.setModDirs)
-        self.addModButton.clicked.connect(lambda: self.moveMods(self.inactiveModList, self.activeModList, "Inactive", "Active"))    # Inactive => Active
-        self.removeModButton.clicked.connect(lambda: self.moveMods(self.activeModList, self.inactiveModList, "Active", "Inactive")) # Active => Inactive
+        self.addModButton.clicked.connect(lambda: self.moveMods(self.disabledModList, self.enabledModList, "Disabled", "Enabled"))    # Disabled => Enabled
+        self.removeModButton.clicked.connect(lambda: self.moveMods(self.enabledModList, self.disabledModList, "Enabled", "Disabled")) # Enabled => Disabled
         
-        # Connect current item change to updateModName method
-        self.activeModList.currentItemChanged.connect(lambda: self.updateModName("Active"))
-        self.inactiveModList.currentItemChanged.connect(lambda: self.updateModName("Inactive"))
+        # Connect current item change to updatePreview method
+        self.enabledModList.currentItemChanged.connect(lambda: self.updatePreview("Enabled"))
+        self.disabledModList.currentItemChanged.connect(lambda: self.updatePreview("Disabled"))
+
 
 
     def setupSettings(self):
@@ -75,30 +77,39 @@ class Main(QMainWindow):
 
     def setModDirs(self):
         """
-        Set directories for "Active" and "Inactive" mods.
+        Set directories for "Enabled" and "Disabled" mods.
 
-        Args:
-            modding_dir (str): Directory path where "Active" and "Inactive" directories are located.
+        This function recursively searches for .ini files within the "Mods" directory.
+        Once an .ini file is found, its parent directory is listed in the Enabled or 
+        Disabled section based on its prefix.
         """
-
-        # Reload mod lists based on current directories
         modding_dir = self.selectedDirectoryLabel.text()
-        active_dir = os.path.join(modding_dir, "Active")
-        inactive_dir = os.path.join(modding_dir, "Inactive")
+        
+        if not os.path.exists(modding_dir):
+            self.logError(f"Directory {modding_dir} does not exist.")
+            return
 
-        if os.path.exists(active_dir):
-            self.listDirectories(active_dir, self.activeModList)
+        enabled_mods = []
+        disabled_mods = []
 
-        if os.path.exists(inactive_dir):
-            self.listDirectories(inactive_dir, self.inactiveModList)
+        for root, dirs, files in os.walk(modding_dir):
+            for file in files:
+                if file.endswith(".ini"):
+                    mod_dir = os.path.basename(root)
+                    if mod_dir.startswith("DISABLED_"):
+                        disabled_mods.append(mod_dir)
+                    else:
+                        enabled_mods.append(mod_dir)
+                    # Stop searching deeper once an .ini file is found
+                    dirs[:] = []
+                    break
 
-        # Update button states based on directories
-        active_exists = os.path.exists(active_dir)
-        inactive_exists = os.path.exists(inactive_dir)
-        self.activeModList.setEnabled(active_exists)
-        self.inactiveModList.setEnabled(inactive_exists)
-        self.addModButton.setEnabled(active_exists and inactive_exists)
-        self.removeModButton.setEnabled(active_exists and inactive_exists)
+        # Populate the lists in the UI
+        self.enabledModList.clear()
+        self.disabledModList.clear()
+
+        self.enabledModList.addItems(enabled_mods)
+        self.disabledModList.addItems(disabled_mods)
 
 
     def openFileDialog(self):
@@ -138,48 +149,76 @@ class Main(QMainWindow):
             self.logError(f"Error accessing directory: {e}")
     
 
-    def moveMods(self, source_list, target_list, source_dir, target_dir):
+    def moveMods(self, source_list, target_list, source_status):
         """
-        Move selected items from source_list to target_list within the specified directories.
+        Enable/Disable every directory within source_list by adding/removing the "DISABLED_" based on source_status
 
         Args:
             source_list (QListWidget): The QListWidget containing items to be moved.
             target_list (QListWidget): The QListWidget where items will be moved to.
-            source_dir (str): Directory name where items are currently located.
-            target_dir (str): Directory name where items will be moved.
+            source_status (str): Status of the source items ("Enabled" or "Disabled").
 
-        Moves selected items from source_list to target_list by physically moving
-        corresponding directories/files from source_dir to target_dir. Updates the UI
-        accordingly by removing items from source_list and adding them to target_list.
+        Moves selected items from source_list to target_list by renaming the corresponding directories
+        to add or remove the "DISABLED" prefix. Updates the UI accordingly by removing items from source_list
+        and adding them to target_list.
 
-        If any error occurs during the move operation, an error message is printed
-        indicating the failed directory/file move.
+        If any error occurs during the rename operation, an error message is printed indicating the failed 
+        directory rename.
         """
         selected_items = source_list.selectedItems()
         for item in selected_items:
             item_name = item.text()
-            src_path = os.path.join(self.selectedDirectoryLabel.text(), source_dir, item_name)
-            dest_path = os.path.join(self.selectedDirectoryLabel.text(), target_dir, item_name)
+            mod_dir = self.findModDirectory(item_name)
+            prefix = "DISABLED_"
+
+            if not mod_dir:
+                self.logError(f"Error finding directory for {item_name}.")
+                continue
+            
+            if source_status == "Enabled":
+                dest_path = mod_dir[:-len(item_name)] + prefix + item_name
+            elif source_status == "":
+                dest_path = mod_dir[:-len(item_name)] + item_name[len(prefix):]
             
             try:
-                shutil.move(src_path, dest_path)    # Actually move the files
-                source_list.takeItem(source_list.row(item)) # Remove the item from source 
-                target_list.addItem(item_name)              # Place item in target
+                os.rename(mod_dir, dest_path)  # Rename the directory
+                source_list.takeItem(source_list.row(item))  # Remove the item from source
+                target_list.addItem(dest_path.split(os.sep)[-1])  # Place item in target
             except Exception as e:
-                self.logError(f"Error moving {item_name}. Please Refresh Mod List.\n\t {e}")
+                self.logError(f"Error renaming {item_name}. Please Refresh Mod List.\n\t {e}")
 
 
-    def updateModName(self, mod_status):
+    def findModDirectory(self, mod_name):
+        """
+        Find the directory containing the mod.
+
+        Args:
+            mod_name (str): The name of the mod to find.
+
+        Returns:
+            str: The full path to the directory containing the mod, or None if not found.
+        """
+        for root, dirs, files in os.walk(self.selectedDirectoryLabel.text()):
+            for name in dirs:
+                if name == mod_name or name == f"DISABLED_{mod_name}":
+                    return os.path.join(root, name)
+        return None
+
+
+
+
+
+    def updatePreview(self, mod_status):
         """
         Update the mod name label and image preview based on the current selection.
         """
         # Determine the selected list based on mod_status
-        if mod_status == "Active":
-            selected_list = self.activeModList
-            base_subdir = "Active"
-        elif mod_status == "Inactive":
-            selected_list = self.inactiveModList
-            base_subdir = "Inactive"
+        if mod_status == "Enabled":
+            selected_list = self.enabledModList
+            base_subdir = "Enabled"
+        elif mod_status == "Disabled":
+            selected_list = self.disabledModList
+            base_subdir = "Disabled"
 
         if selected_list:
             selected_item = selected_list.currentItem()
@@ -218,6 +257,25 @@ class Main(QMainWindow):
             scene = QGraphicsScene()
             self.modPreview.setScene(scene)
 
+
+    def populatePatchSelector(self):
+        patch_dir = os.path.join(self.selectedDirectoryLabel.text(), "PatchScripts")  # Directory containing .py and .exe files
+
+        if not os.path.exists(patch_dir):
+            print(f"Directory {patch_dir} does not exist.")
+            return
+        
+        # Clear any existing items
+        self.patchSelector.clear()
+        
+        # List all files in the patch directory
+        files = os.listdir(patch_dir)
+        
+        # Filter files to include only .py and .exe files
+        py_exe_files = [f for f in files if f.endswith(".py") or f.endswith(".exe")]
+        
+        # Add filtered files to the combobox
+        self.patchSelector.addItems(py_exe_files)
 
 
 
