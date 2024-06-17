@@ -34,8 +34,10 @@ Thumbs.db
 # Exclude .lnk files
 *.lnk
 
-#Exclude sandbox directory
+#Exclude sandbox directories
 GameName/
+3dmigoto/
+PatchScripts/
 
 # Include main.ui
 !main.ui
