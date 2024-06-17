@@ -2,17 +2,18 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QGraphicsSce
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import Qt, QSettings
 from PyQt5.QtGui import QPixmap, QFont
-import sys, os, datetime
+import sys, os, datetime, subprocess
 from enum import Enum
 
 class Main(QMainWindow):
     
-    # color of error messages
+    # color of log messages
     class Color(Enum):
         SUCCESS = '#188524'
         WARNING = '#DC9752'
         ERROR = '#B30000'
         INFO = '#5050FF'
+
 
     def __init__(self):
         """
@@ -44,14 +45,24 @@ class Main(QMainWindow):
         self.populatePatchSelector()
         
         # self.setFixedSize(500, 500);
-
         
+    
+    def normalizePath(self, path):
+        """
+        Normalizes the type of slashes to use. Mainly to be used when displaying paths rather than working with them.
+
+        Args:
+            path (str): A path to a resource
+        """
+        return path.replace("\\", "/")
+
+
     def setSignals(self):
         """
         Connects signals from various buttons to their respective slots.
 
         - browseButton: Opens a file dialog to select a directory.
-        - refreshButton: Refreshes the list of enabled and disabled mods.
+        - refreshModsButton: Refreshes the list of enabled and disabled mods.
         - addModButton: Moves selected items from disabledModList to enabledModList.
         - removeModButton: Moves selected items from enabledModList to disabledModList.
         - enabledModList: Updates the mod name label when the current item changes.
@@ -59,7 +70,9 @@ class Main(QMainWindow):
         """
         # Buttons
         self.browseButton.clicked.connect(self.openFileDialog)
-        self.refreshButton.clicked.connect(self.setModDirs)
+        self.refreshModsButton.clicked.connect(self.setModDirs)
+        self.patchButton.clicked.connect(self.runPatch)
+        self.refreshPatchButton.clicked.connect(self.populatePatchSelector)
         self.addModButton.clicked.connect(lambda: self.moveMods(self.disabledModList, self.enabledModList, "Disabled"))    # Disabled => Enabled
         self.removeModButton.clicked.connect(lambda: self.moveMods(self.enabledModList, self.disabledModList, "Enabled")) # Enabled => Disabled
         
@@ -97,7 +110,7 @@ class Main(QMainWindow):
         modding_dir = self.selectedDirectoryLabel.text()
         
         if not os.path.exists(modding_dir):
-            self.logMessage(f"Directory {modding_dir} does not exist.", self.Color.ERROR)
+            self.logMessage(f"MODS - Directory {self.normalizePath(modding_dir)} does not exist.", self.Color.ERROR)
             return
 
         enabled_mods = []
@@ -119,8 +132,11 @@ class Main(QMainWindow):
         self.enabledModList.clear()
         self.disabledModList.clear()
 
-        self.enabledModList.addItems(enabled_mods)
-        self.disabledModList.addItems(disabled_mods)
+        if len(enabled_mods) == 0 and len(disabled_mods) == 0:
+             self.logMessage(f"MODS - No mods found in {modding_dir} and its children directories.", self.Color.WARNING)
+        else:
+            self.enabledModList.addItems(enabled_mods)
+            self.disabledModList.addItems(disabled_mods)
 
 
     def openFileDialog(self):
@@ -140,27 +156,10 @@ class Main(QMainWindow):
             # Save selected directory to QSettings
             self.settings.setValue("last_directory", directory)
             self.setModDirs()
+            self.populatePatchSelector()
     
 
-    def listDirectories(self, directory, list_widget):
-        """
-        List directories within a specified directory and populate a QListWidget.
-
-        Args:
-            directory (str): Directory path to list directories from.
-            list_widget (QListWidget): QListWidget to populate with directory names.
-        """
-        list_widget.clear()
-        try:
-            for item_name in os.listdir(directory):
-                item_path = os.path.join(directory, item_name)
-                if os.path.isdir(item_path):
-                    list_widget.addItem(item_name)
-        except Exception as e:
-            self.logMessage(f"Error accessing directory: {e}", self.Color.ERROR)
-    
-
-    def toggleWidget(self, widgets=[]):
+    def toggleWidget(self, widgets=[], enableWidget=None):
         """
         Toggle the enabled state of the specified widgets.
 
@@ -169,9 +168,15 @@ class Main(QMainWindow):
 
         Parameters:
         widgets (list): A list of widgets to toggle the enabled state for.
+        enableWidget (bool, optional): If provided, sets the widgets to this state. 
+                                        If True, widgets are enabled. If False, widgets are disabled.
         """
-        for widget in widgets:
-            widget.setEnabled(not widget.isEnabled())
+        if enableWidget is None:
+            for widget in widgets:
+                widget.setEnabled(not widget.isEnabled())   # Flip the current state if no state is explicitly provided
+        else:
+            for widget in widgets:
+                widget.setEnabled(enableWidget)    # If enabled, disable. If disabled, enable.
 
 
     def moveMods(self, source_list, target_list, source_status):
@@ -198,7 +203,7 @@ class Main(QMainWindow):
             prefix = "DISABLED_"
 
             if not mod_dir:
-                self.logMessage(f"Error: Could not find directory for {item_name}.[ Refresh Mod List ]", self.Color.ERROR)
+                self.logMessage(f"MODS - Error: Could not find directory for {item_name}.[ Refresh Mod List ]", self.Color.ERROR)
                 continue
 
             # Determine new directory name & path, for renaming
@@ -217,7 +222,7 @@ class Main(QMainWindow):
                 source_list.takeItem(source_list.row(item))
                 target_list.addItem(dest_path.split(os.sep)[-1])
             except Exception as e:
-                self.logMessage(f"Error renaming {item_name}. Try to [Refresh Mod List].\n\t {e}", self.Color.ERROR)
+                self.logMessage(f"MODS - Error renaming {item_name}. Try to [Refresh Mod List].\n\t {e}", self.Color.ERROR)
         self.toggleWidget([self.addModButton, self.removeModButton]) # Enable buttons once more after mods have been enabled/disabled
 
 
@@ -285,12 +290,15 @@ class Main(QMainWindow):
 
 
     def populatePatchSelector(self):
+
         patch_dir = os.path.join(self.selectedDirectoryLabel.text(), "PatchScripts")  # Directory containing .py and .exe files
 
         if not os.path.exists(patch_dir):
-            print(f"Directory {patch_dir} does not exist.")
+            self.logMessage(f'PATCH - Directory {self.normalizePath(self.normalizePath(patch_dir))} does not exist.', self.Color.WARNING)
+            # Disable ability to patch directory if directory does not exist missing
+            self.toggleWidget([self.patchSelector, self.patchButton], False)
             return
-        
+
         # Clear any existing items
         self.patchSelector.clear()
         
@@ -302,6 +310,77 @@ class Main(QMainWindow):
         
         # Add filtered files to the combobox
         self.patchSelector.addItems(py_exe_files)
+
+        # Enable/Disable ability to patch if a .py or .exe file exists
+        if self.patchSelector.count() < 1:
+            self.toggleWidget([self.patchSelector, self.patchButton], False)
+            self.logMessage(f"PATCH - No patches found in {self.normalizePath(patch_dir)}")
+        else:
+            self.toggleWidget([self.patchSelector, self.patchButton], True)
+
+
+    def runPatch(self):
+        try:
+            selected_script = os.path.join(os.getcwd(), "PatchScripts", self.patchSelector.currentText())
+            if os.path.exists(selected_script) and os.path.isfile(selected_script):
+                #*******************************************************************************************************************************************
+                #               UNCOMMENT BEFORE CONVERTING TO EXE
+                # self.runScript(selected_script, self.selectedDirectoryLabel.text())
+                #*******************************************************************************************************************************************
+                self.logMessage(f"RUNNING {selected_script}\n\tON {self.selectedDirectoryLabel.text()}")
+            else:
+                self.logMessage(f"PATCH - Failed to find [ {self.patchSelector.currentText()} ] in [{self.normalizePath(selected_script)}]", self.Color.WARNING)
+        except Exception as e:
+            self.logMessage(f"PATCH - Error: {e}", self.Color.ERROR)
+
+
+    def runScript(self, script_path, target_directory):
+        """
+        Runs a given script (either .py or .exe) on the specified directory.
+
+        Parameters:
+        script_path (str): The path to the script file to be executed.
+        target_directory (str): The directory on which the script should operate.
+        """
+        original_cwd = os.getcwd()  # Save current working directory
+
+        try:
+            # Validate script_path and target_directory
+            if not os.path.isfile(script_path):
+                raise ValueError(f"Script path {self.normalizePath(script_path)} does not point to a valid file.")
+
+            if not os.path.isdir(target_directory):
+                raise ValueError(f"Target directory {self.normalizePath(target_directory)} does not point to a valid directory.")
+            
+            # Change current working directory to target_directory
+            os.chdir(target_directory)
+
+            if script_path.endswith('.py'):
+                # Use Popen to interact with subprocess
+                proc = subprocess.Popen(["python", script_path], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+            elif script_path.endswith('.exe'):
+                proc = subprocess.Popen([script_path], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+            else:
+                raise ValueError("Script must be either a .py or .exe file.")
+            
+            # Optionally, you can send input to the subprocess
+            # Here we simulate sending an 'enter' key press
+            proc.communicate(input='\n')
+
+            # Optionally, you can wait for the subprocess to finish
+            proc.wait()
+
+            # Check the result
+            if proc.returncode == 0:
+                self.logMessage(f"Script executed successfully!", self.Color.SUCCESS)
+            else:
+                self.logMessage(f"Script returned error code {proc.returncode}.", self.Color.ERROR)
+
+        except Exception as e:
+            self.logMessage(f"Error: {e}")
+        finally:
+            # Restore original working directory
+            os.chdir(original_cwd)
 
 
     def logMessage(self, error_message, msg_type=Color.INFO):
