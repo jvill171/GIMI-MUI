@@ -125,7 +125,7 @@ QTabBar::tab:hover {
      <attribute name="title">
       <string>Manage</string>
      </attribute>
-     <widget class="QPushButton" name="refreshButton">
+     <widget class="QPushButton" name="refreshModsButton">
       <property name="geometry">
        <rect>
         <x>330</x>
@@ -306,7 +306,7 @@ QTabBar::tab:hover {
         <rect>
          <x>10</x>
          <y>20</y>
-         <width>241</width>
+         <width>171</width>
          <height>22</height>
         </rect>
        </property>
@@ -330,6 +330,25 @@ QTabBar::tab:hover {
        </property>
        <property name="text">
         <string>Patch</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="refreshPatchButton">
+       <property name="geometry">
+        <rect>
+         <x>190</x>
+         <y>20</y>
+         <width>61</width>
+         <height>23</height>
+        </rect>
+       </property>
+       <property name="cursor">
+        <cursorShape>PointingHandCursor</cursorShape>
+       </property>
+       <property name="toolTip">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Use if you manually changed files in the File Explorer&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+       <property name="text">
+        <string>Refresh</string>
        </property>
       </widget>
      </widget>
