@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QGraphicsScene, QGraphicsPixmapItem, QGraphicsTextItem
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QGraphicsScene, QGraphicsPixmapItem, QGraphicsTextItem, QListWidgetItem
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import Qt, QSettings
 from PyQt5.QtGui import QPixmap, QFont
@@ -119,11 +119,15 @@ class Main(QMainWindow):
         for root, dirs, files in os.walk(modding_dir):
             for file in files:
                 if file.endswith(".ini"):
-                    mod_dir = os.path.basename(root)
-                    if mod_dir.startswith("DISABLED_"):
-                        disabled_mods.append(mod_dir)
+
+                    mod_item = QListWidgetItem(os.path.basename(root))
+                    mod_item.setToolTip(self.normalizePath(root))
+                    
+                    if os.path.basename(root).startswith("DISABLED_"):
+                        disabled_mods.append(mod_item)
                     else:
-                        enabled_mods.append(mod_dir)
+                        enabled_mods.append(mod_item)
+                        
                     # Stop searching deeper once an .ini file is found
                     dirs[:] = []
                     break
@@ -135,8 +139,10 @@ class Main(QMainWindow):
         if len(enabled_mods) == 0 and len(disabled_mods) == 0:
              self.logMessage(f"MODS - No mods found in {modding_dir} and its children directories.", self.Color.WARNING)
         else:
-            self.enabledModList.addItems(enabled_mods)
-            self.disabledModList.addItems(disabled_mods)
+            for item in enabled_mods:
+                self.enabledModList.addItem(item)
+            for item in disabled_mods:
+                self.disabledModList.addItem(item)
 
 
     def openFileDialog(self):
@@ -220,7 +226,16 @@ class Main(QMainWindow):
                 self.logMessage(new_status_msg)
                 # Move from one widget to the other
                 source_list.takeItem(source_list.row(item))
-                target_list.addItem(dest_path.split(os.sep)[-1])
+
+                # User manually renamed file to use "DISABLED_" and did not refresh the mod list.
+                if new_item_name != os.path.basename(dest_path):
+                    self.logMessage("Detected issue with directory name. Please [Refresh Mod List]", self.Color.WARNING)
+
+                # Create a new QListWidgetItem with updated text and tooltip
+                new_item = QListWidgetItem(new_item_name)
+                new_item.setToolTip(self.normalizePath(dest_path))
+                target_list.addItem(new_item)
+
             except Exception as e:
                 self.logMessage(f"MODS - Error renaming {item_name}. Try to [Refresh Mod List].\n\t {e}", self.Color.ERROR)
         self.toggleWidget([self.addModButton, self.removeModButton]) # Enable buttons once more after mods have been enabled/disabled
