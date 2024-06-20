@@ -5,15 +5,26 @@ from PyQt5.QtGui import QPixmap, QFont
 import sys, os, datetime, subprocess
 from enum import Enum
 
-class Main(QMainWindow):
-    
-    # color of log messages
-    class Color(Enum):
-        SUCCESS = '#188524'
-        WARNING = '#DC9752'
-        ERROR = '#B30000'
-        INFO = '#5050FF'
 
+# Define colors for logging messages
+class Color(Enum):
+    SUCCESS = '#188524'
+    WARNING = '#DC9752'
+    ERROR = '#B30000'
+    INFO = '#5050FF'
+
+# URI helper 
+def normalizePath(path):
+    """
+    Normalizes the type of slashes to use. Mainly to be used when displaying paths rather than working with them.
+
+    Args:
+        path (str): A path to a resource
+    """
+    return path.replace("\\", "/")
+
+
+class Main(QMainWindow):
 
     def __init__(self):
         """
@@ -43,20 +54,11 @@ class Main(QMainWindow):
         self.removeModButton.setText("\u2B9F")  # Unicode for ⮟
 
         self.populatePatchSelector()
+        self.runManage()
         
         # self.setFixedSize(500, 500);
         
     
-    def normalizePath(self, path):
-        """
-        Normalizes the type of slashes to use. Mainly to be used when displaying paths rather than working with them.
-
-        Args:
-            path (str): A path to a resource
-        """
-        return path.replace("\\", "/")
-
-
     def setSignals(self):
         """
         Connects signals from various buttons to their respective slots.
@@ -110,7 +112,7 @@ class Main(QMainWindow):
         modding_dir = self.selectedDirectoryLabel.text()
         
         if not os.path.exists(modding_dir):
-            self.logMessage(f"MODS - Directory {self.normalizePath(modding_dir)} does not exist.", self.Color.ERROR)
+            self.logMessage(f"MODS - Directory {normalizePath(modding_dir)} does not exist.", Color.ERROR)
             return
 
         enabled_mods = []
@@ -121,7 +123,7 @@ class Main(QMainWindow):
                 if file.endswith(".ini"):
 
                     mod_item = QListWidgetItem(os.path.basename(root))
-                    mod_item.setToolTip(self.normalizePath(root))
+                    mod_item.setToolTip(normalizePath(root))
                     
                     if os.path.basename(root).startswith("DISABLED_"):
                         disabled_mods.append(mod_item)
@@ -137,7 +139,7 @@ class Main(QMainWindow):
         self.disabledModList.clear()
 
         if len(enabled_mods) == 0 and len(disabled_mods) == 0:
-             self.logMessage(f"MODS - No mods found in {modding_dir} and its children directories.", self.Color.WARNING)
+             self.logMessage(f"MODS - No mods found in {modding_dir} and its children directories.", Color.WARNING)
         else:
             for item in enabled_mods:
                 self.enabledModList.addItem(item)
@@ -209,7 +211,7 @@ class Main(QMainWindow):
             prefix = "DISABLED_"
 
             if not mod_dir:
-                self.logMessage(f"MODS - Error: Could not find directory for {item_name}.[ Refresh Mod List ]", self.Color.ERROR)
+                self.logMessage(f"MODS - Error: Could not find directory for {item_name}.[ Refresh Mod List ]", Color.ERROR)
                 continue
 
             # Determine new directory name & path, for renaming
@@ -229,15 +231,15 @@ class Main(QMainWindow):
 
                 # User manually renamed file to use "DISABLED_" and did not refresh the mod list.
                 if new_item_name != os.path.basename(dest_path):
-                    self.logMessage("Detected issue with directory name. Please [Refresh Mod List]", self.Color.WARNING)
+                    self.logMessage("Detected issue with directory name. Please [Refresh Mod List]", Color.WARNING)
 
                 # Create a new QListWidgetItem with updated text and tooltip
                 new_item = QListWidgetItem(new_item_name)
-                new_item.setToolTip(self.normalizePath(dest_path))
+                new_item.setToolTip(normalizePath(dest_path))
                 target_list.addItem(new_item)
 
             except Exception as e:
-                self.logMessage(f"MODS - Error renaming {item_name}. Try to [Refresh Mod List].\n\t {e}", self.Color.ERROR)
+                self.logMessage(f"MODS - Error renaming {item_name}. Try to [Refresh Mod List].\n\t {e}", Color.ERROR)
         self.toggleWidget([self.addModButton, self.removeModButton]) # Enable buttons once more after mods have been enabled/disabled
 
 
@@ -309,7 +311,7 @@ class Main(QMainWindow):
         patch_dir = os.path.join(self.selectedDirectoryLabel.text(), "PatchScripts")  # Directory containing .py and .exe files
 
         if not os.path.exists(patch_dir):
-            self.logMessage(f'PATCH - Directory {self.normalizePath(self.normalizePath(patch_dir))} does not exist.', self.Color.WARNING)
+            self.logMessage(f'PATCH - Directory {normalizePath(patch_dir)} does not exist.', Color.WARNING)
             # Disable ability to patch directory if directory does not exist missing
             self.toggleWidget([self.patchSelector, self.patchButton], False)
             return
@@ -329,7 +331,7 @@ class Main(QMainWindow):
         # Enable/Disable ability to patch if a .py or .exe file exists
         if self.patchSelector.count() < 1:
             self.toggleWidget([self.patchSelector, self.patchButton], False)
-            self.logMessage(f"PATCH - No patches found in {self.normalizePath(patch_dir)}")
+            self.logMessage(f"PATCH - No patches found in {normalizePath(patch_dir)}")
         else:
             self.toggleWidget([self.patchSelector, self.patchButton], True)
 
@@ -344,9 +346,9 @@ class Main(QMainWindow):
                 #*******************************************************************************************************************************************
                 self.logMessage(f"RUNNING {selected_script}\n\tON {self.selectedDirectoryLabel.text()}")
             else:
-                self.logMessage(f"PATCH - Failed to find [ {self.patchSelector.currentText()} ] in [{self.normalizePath(selected_script)}]", self.Color.WARNING)
+                self.logMessage(f"PATCH - Failed to find [ {self.patchSelector.currentText()} ] in [{normalizePath(selected_script)}]", Color.WARNING)
         except Exception as e:
-            self.logMessage(f"PATCH - Error: {e}", self.Color.ERROR)
+            self.logMessage(f"PATCH - Error: {e}", Color.ERROR)
 
 
     def runScript(self, script_path, target_directory):
@@ -362,10 +364,10 @@ class Main(QMainWindow):
         try:
             # Validate script_path and target_directory
             if not os.path.isfile(script_path):
-                raise ValueError(f"Script path {self.normalizePath(script_path)} does not point to a valid file.")
+                raise ValueError(f"Script path {normalizePath(script_path)} does not point to a valid file.")
 
             if not os.path.isdir(target_directory):
-                raise ValueError(f"Target directory {self.normalizePath(target_directory)} does not point to a valid directory.")
+                raise ValueError(f"Target directory {normalizePath(target_directory)} does not point to a valid directory.")
             
             # Change current working directory to target_directory
             os.chdir(target_directory)
@@ -387,9 +389,9 @@ class Main(QMainWindow):
 
             # Check the result
             if proc.returncode == 0:
-                self.logMessage(f"Script executed successfully!", self.Color.SUCCESS)
+                self.logMessage(f"Script executed successfully!", Color.SUCCESS)
             else:
-                self.logMessage(f"Script returned error code {proc.returncode}.", self.Color.ERROR)
+                self.logMessage(f"Script returned error code {proc.returncode}.", Color.ERROR)
 
         except Exception as e:
             self.logMessage(f"Error: {e}")
