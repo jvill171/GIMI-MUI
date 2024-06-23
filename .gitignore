@@ -35,9 +35,9 @@ Thumbs.db
 *.lnk
 
 #Exclude sandbox directories
-GameName/
-3dmigoto/
-PatchScripts/
+Mods/
+/Scripts/Merge/*.py
+/Scripts/*.py
 
 # Include main.ui
 !main.ui
