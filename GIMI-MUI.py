@@ -5,23 +5,12 @@ from PyQt5.QtGui import QPixmap, QFont
 import sys, os, datetime, subprocess
 from enum import Enum
 
-
-# Define colors for logging messages
+# Helper class for defining colors of logged messages
 class Color(Enum):
     SUCCESS = '#188524'
     WARNING = '#DC9752'
     ERROR = '#B30000'
     INFO = '#5050FF'
-
-# URI helper 
-def normalizePath(path):
-    """
-    Normalizes the type of slashes to use. Mainly to be used when displaying paths rather than working with them.
-
-    Args:
-        path (str): A path to a resource
-    """
-    return path.replace("\\", "/")
 
 
 class Main(QMainWindow):
@@ -30,78 +19,127 @@ class Main(QMainWindow):
         """
         Initialize the Main window.
 
-        Load the UI file, initialize QSettings, and set up the initial UI settings.
+        Load the UI file, clear the image carousel data, and set up the initial UI settings.
         """
         super(Main, self).__init__()
         loadUi("main.ui", self)
         self.settings = QSettings("github.io/jvill171", "GIMI ModUI")  # Initialize QSettings
         self.initUI()
+        
+        self.carousel_images = []
+        self.carousel_idx = 0
     
 
     def initUI(self):
         """
         Set up the initial UI settings.
 
-        Connect signals (e.g., browseButton clicked signal), disable maximize button,
-        and set up any initial settings using setupSettings().
+        Connect signals, and set up any initial settings.
         """
         self.setWindowTitle('GIMI ModUI')
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowMaximizeButtonHint)  # Disable maximize button
         self.setSignals()
-        self.setupSettings()    # Set up any values for settings
-
-        self.addModButton.setText("\u2B9D")  # Unicode for ⮝
-        self.removeModButton.setText("\u2B9F")  # Unicode for ⮟
-
-        self.populatePatchSelector()
-        self.runManage()
+        self.setUnicodeText()
         
+        if self.settings.value("key"): self.swapKeyLineEdit.setText(self.settings.value("key"))
+        if self.settings.value("name"): self.mergeNameLineEdit.setText(self.settings.value("name"))
+
+        self.updateMergeButton()
+        self.clearPreviewAndRefresh()
+        self.setIconGraphicsView()
+
         # self.setFixedSize(500, 500);
         
-    
+
+    def setUnicodeText(self):
+        """
+        Set unicode text for specific widgets
+        """
+        # Enable/Disable buttons
+        self.addModButton.setText("\u2B9D")  # Unicode for ⮝
+        self.removeModButton.setText("\u2B9F")  # Unicode for ⮟
+        # Image preview buttons
+        self.previewModBackButton.setText("\u25c0")     # Unicode for ◀
+        self.previewMergeBackButton.setText("\u25c0")   # Unicode for ◀
+        self.previewModNextButton.setText("\u25b6")     # Unicode for ▶
+        self.previewMergeNextButton.setText("\u25b6")   # Unicode for ▶
+
+
     def setSignals(self):
         """
         Connects signals from various buttons to their respective slots.
-
-        - browseButton: Opens a file dialog to select a directory.
-        - refreshModsButton: Refreshes the list of enabled and disabled mods.
-        - addModButton: Moves selected items from disabledModList to enabledModList.
-        - removeModButton: Moves selected items from enabledModList to disabledModList.
-        - enabledModList: Updates the mod name label when the current item changes.
-        - disabledModList: Updates the mod name label when the current item changes.
         """
         # Buttons
-        self.browseButton.clicked.connect(self.openFileDialog)
-        self.refreshModsButton.clicked.connect(self.setModDirs)
+        self.findFolderButton.clicked.connect(self.browseMergeDir)
+        self.mergeModsButton.clicked.connect(self.runMerge)
+        self.refreshModsButton.clicked.connect(self.populateModLists)
+        self.refreshMergeButton.clicked.connect(self.populateMergeList)
         self.patchButton.clicked.connect(self.runPatch)
-        self.refreshPatchButton.clicked.connect(self.populatePatchSelector)
-        self.addModButton.clicked.connect(lambda: self.moveMods(self.disabledModList, self.enabledModList, "Disabled"))    # Disabled => Enabled
-        self.removeModButton.clicked.connect(lambda: self.moveMods(self.enabledModList, self.disabledModList, "Enabled")) # Enabled => Disabled
+        self.addModButton.clicked.connect(lambda: self.moveMods(self.disabledModList, self.enabledModList, "Disabled"))     # Disabled => Enabled
+        self.removeModButton.clicked.connect(lambda: self.moveMods(self.enabledModList, self.disabledModList, "Enabled"))   # Enabled => Disabled
+
+        # Add signals for image preview navigation buttons
+        self.previewModBackButton.clicked.connect(self.showPrevImage)
+        self.previewMergeBackButton.clicked.connect(self.showPrevImage)
+        self.previewModNextButton.clicked.connect(self.showNextImage)
+        self.previewMergeNextButton.clicked.connect(self.showNextImage)
+
+        # Enable or Disable the "Merge Mods" Button based its dependencies
+        self.swapKeyLineEdit.textChanged.connect(self.updateMergeButton)
+        self.mergeDirLineEdit.textChanged.connect(self.updateMergeButton)
         
         # Connect current item change to updatePreview method
         self.enabledModList.currentItemChanged.connect(lambda: self.updatePreview("Enabled"))
         self.disabledModList.currentItemChanged.connect(lambda: self.updatePreview("Disabled"))
-
-
-    def setupSettings(self):
+        self.mergeModList.currentItemChanged.connect(self.updatePreview)
+        
+        # When tab is changed
+        self.tabWidget.currentChanged.connect(self.clearPreviewAndRefresh)
+        
+        
+    def clearPreviewAndRefresh(self, index=0):
         """
-        Set up application settings on startup.
-
-        Load the last selected directory from QSettings, display it in selectedDirectoryLabel,
-        set tooltips, and initialize mod directories using setModDirs().
+        Clear the image preview data and refresh the respective mod lists
         """
-        # This line should only trigger on app's first use. Needed to ensure a value exists for last_directory
-        if not self.settings.value("last_directory", ""):
-            self.settings.setValue("last_directory", os.getcwd())
+        # Clear image preview
+        self.carousel_images = []
+        self.previewModImage.setScene(QGraphicsScene())
+        self.previewMergeImage.setScene(QGraphicsScene())
 
-        # Load last selected directory on startup, default current directory
-        modding_dir = self.settings.value("last_directory", os.getcwd())
-        self.selectedDirectoryLabel.setText(modding_dir)
-        self.selectedDirectoryLabel.setToolTip(modding_dir)
-        self.setModDirs()
+        # Refresh tab's list data, in the case files were moved/renamed
+        tab_name = self.tabWidget.tabText(index).lower()
+        if tab_name == "manage":
+            self.populateModLists()
+            self.toggleWidget([self.previewModBackButton, self.previewModNextButton], enableWidget=False)
+        if tab_name == "merge":
+            self.populateMergeList()
+            self.toggleWidget([self.previewMergeBackButton, self.previewMergeNextButton], enableWidget=False)
 
 
-    def setModDirs(self):
+    def updateMergeButton(self):
+        """
+        Enables/Disables Merge Mods button.
+
+        If swapKeyLineEdit or mergeDirLineEdit has any text, the button is enabled. Else it is disabled.
+        """
+        # Enable the button only if both QLineEdits are not empty
+        if self.swapKeyLineEdit.text() and self.mergeDirLineEdit.text() and self.mergeModList.count() > 1:
+            self.toggleWidget([self.mergeModsButton], enableWidget=True)
+        else:
+            self.toggleWidget([self.mergeModsButton], enableWidget=False)
+
+
+    def saveSetting(self, dict_data):
+        """
+        Save the last attempted settings the user tried to merge mods with.
+
+        dict_data (dictionary): Key-value pairs to save into settings.
+        """
+        for key, value in dict_data.items():
+            self.settings.setValue(key, value)
+
+
+    def populateModLists(self):
         """
         Set directories for "Enabled" and "Disabled" mods.
 
@@ -109,23 +147,24 @@ class Main(QMainWindow):
         Once an .ini file is found, its parent directory is listed in the Enabled or 
         Disabled section based on its prefix.
         """
-        modding_dir = self.selectedDirectoryLabel.text()
-        
+        modding_dir = os.path.join(os.getcwd(), "Mods")
+
         if not os.path.exists(modding_dir):
-            self.logMessage(f"MODS - Directory {normalizePath(modding_dir)} does not exist.", Color.ERROR)
+            self.logMessage(f"Directory {normalizePath(modding_dir)} does not exist.", Color.ERROR)
             return
 
         enabled_mods = []
         disabled_mods = []
 
         for root, dirs, files in os.walk(modding_dir):
+            if "BufferValues" in root or "ShaderCache" in root or "ShaderFixes" in root:
+                continue;
             for file in files:
                 if file.endswith(".ini"):
-
                     mod_item = QListWidgetItem(os.path.basename(root))
                     mod_item.setToolTip(normalizePath(root))
                     
-                    if os.path.basename(root).startswith("DISABLED_"):
+                    if os.path.basename(root).startswith("DISABLED"):
                         disabled_mods.append(mod_item)
                     else:
                         enabled_mods.append(mod_item)
@@ -139,7 +178,7 @@ class Main(QMainWindow):
         self.disabledModList.clear()
 
         if len(enabled_mods) == 0 and len(disabled_mods) == 0:
-             self.logMessage(f"MODS - No mods found in {modding_dir} and its children directories.", Color.WARNING)
+            self.logMessage(f"No mods found in {modding_dir} or its children directories.", Color.WARNING)
         else:
             for item in enabled_mods:
                 self.enabledModList.addItem(item)
@@ -147,29 +186,57 @@ class Main(QMainWindow):
                 self.disabledModList.addItem(item)
 
 
-    def openFileDialog(self):
+    def populateMergeList(self):
         """
-        Open a file dialog to select the Mods folder.
+        Populate the QListWidget with items based on the provided directory.
 
-        Update selectedDirectoryLabel with the chosen directory path, save it to QSettings,
-        and update mod directories using setModDirs().
+        This function recursively searches for .ini files within the directory
+        specified in QLineEdit.mergeDirLineEdit QWidget. Once an .ini file is
+        found, its parent directory is listed in the Merge list.
         """
-        options = QFileDialog.Options(QFileDialog.DontUseNativeDialog | QFileDialog.ShowDirsOnly)   # Use Qt-specific dialog | Only show directories
-        directory = QFileDialog.getExistingDirectory(self, "Select Mods Folder", options=options)
+        merge_dir = normalizePath( self.mergeDirLineEdit.text() )
+
+        if not os.path.exists(merge_dir):
+            if merge_dir != "": self.logMessage(f"Directory {normalizePath(merge_dir)} does not exist.", Color.ERROR)
+            return
+        
+        self.mergeModList.clear()
+        
+        for root, dirs, files in os.walk(merge_dir):
+            for file in files:
+                if file.endswith(".ini"):
+                    item = QListWidgetItem(os.path.basename(root))
+                    item.setToolTip(normalizePath(root))
+                    self.mergeModList.addItem(item)
+                    # Stop searching deeper once an .ini file is found
+                    dirs[:] = []
+                    break
+
+        self.updateMergeButton()    # Check if Merge button can be enabled
+        if self.mergeModList.count() <= 1:
+            self.logMessage("Less than 2 mods found. Unable to merge anything.", Color.WARNING)
+        
+
+    def browseMergeDir(self):
+        """
+        Open a file dialog to select the folder contianing mods to be merged.
+
+        Update mergeDirLineEdit with the chosen directory path and update
+        mod directories using populateMergeList().
+        """
+        options = QFileDialog.Options(QFileDialog.ShowDirsOnly)   # Only show directories
+        directory = QFileDialog.getExistingDirectory(self, "Select folder containing mods to merge", options=options)
 
         # Display selected directory in QLabel
         if directory:
-            self.selectedDirectoryLabel.setText(directory)
-            self.selectedDirectoryLabel.setToolTip(directory)
-            # Save selected directory to QSettings
-            self.settings.setValue("last_directory", directory)
-            self.setModDirs()
-            self.populatePatchSelector()
+            self.mergeDirLineEdit.setText(directory)
+            self.mergeDirLineEdit.setToolTip(directory)
+            self.populateMergeList()
     
 
     def toggleWidget(self, widgets=[], enableWidget=None):
         """
-        Toggle the enabled state of the specified widgets.
+        Toggle the enabled state of the specified widgets passed in.
 
         This method flips the enabled state of each widget in the provided list.
         If a widget is currently enabled, it will be disabled, and vice versa.
@@ -189,9 +256,9 @@ class Main(QMainWindow):
 
     def moveMods(self, source_list, target_list, source_status):
         """
-        Enable/Disable every directory within source_list by adding/removing the "DISABLED_" based on source_status
+        Enable/Disable every directory within source_list by adding/removing the "DISABLED" prefix as necessary.
 
-        Args:
+        Parameters:
             source_list (QListWidget): The QListWidget containing items to be moved.
             target_list (QListWidget): The QListWidget where items will be moved to.
             source_status (str): Status of the source items ("Enabled" or "Disabled").
@@ -207,11 +274,11 @@ class Main(QMainWindow):
         self.toggleWidget([self.addModButton, self.removeModButton]) # Disable buttons while mods are being enabled/disabled
         for item in selected_items:
             item_name = item.text()
-            mod_dir = self.findModDirectory(item_name)
-            prefix = "DISABLED_"
+            mod_dir = findModDirectory(item_name)
+            prefix = "DISABLED"
 
             if not mod_dir:
-                self.logMessage(f"MODS - Error: Could not find directory for {item_name}.[ Refresh Mod List ]", Color.ERROR)
+                self.logMessage(f"Error: Could not find directory for {item_name}. Please [ Refresh Mod List ]", Color.ERROR)
                 continue
 
             # Determine new directory name & path, for renaming
@@ -229,7 +296,7 @@ class Main(QMainWindow):
                 # Move from one widget to the other
                 source_list.takeItem(source_list.row(item))
 
-                # User manually renamed file to use "DISABLED_" and did not refresh the mod list.
+                # User manually renamed file to use "DISABLED" and did not refresh the mod list.
                 if new_item_name != os.path.basename(dest_path):
                     self.logMessage("Detected issue with directory name. Please [Refresh Mod List]", Color.WARNING)
 
@@ -239,125 +306,108 @@ class Main(QMainWindow):
                 target_list.addItem(new_item)
 
             except Exception as e:
-                self.logMessage(f"MODS - Error renaming {item_name}. Try to [Refresh Mod List].\n\t {e}", Color.ERROR)
+                self.logMessage(f"Error: {e}", Color.ERROR)
         self.toggleWidget([self.addModButton, self.removeModButton]) # Enable buttons once more after mods have been enabled/disabled
 
 
-    def findModDirectory(self, mod_name):
-        """
-        Find the directory containing the mod.
-
-        Args:
-            mod_name (str): The name of the mod to find.
-
-        Returns:
-            str: The full path to the directory containing the mod, or None if not found.
-        """
-        for root, dirs, files in os.walk(self.selectedDirectoryLabel.text()):
-            for name in dirs:
-                if name == mod_name or name == f"DISABLED_{mod_name}":
-                    return os.path.join(root, name)
-        return ""
-
-
-    def updatePreview(self, mod_status):
+    def updatePreview(self, mod_status=""):
         """
         Update the mod name label and image preview based on the current selection.
         """
         # Determine the selected list based on mod_status
-        if mod_status == "Enabled":
+        if mod_status == "Enabled": 
             selected_list = self.enabledModList
-        else:
+        elif mod_status == "Disabled":
             selected_list = self.disabledModList
+        else:
+            selected_list = self.mergeModList
 
         if selected_list:
             selected_item = selected_list.currentItem()
             if selected_item:
                 mod_name = selected_item.text()
-                self.modNameLabel.setText(mod_name)
+                mod_directory = findModDirectory(mod_name)
+                self.previewModLabel.setText(mod_name)
                 
-                # Construct directory paths
-                preview_path = os.path.join(self.findModDirectory(mod_name), "preview.png")
-                
-                # Prepare the QGraphicsScene
-                scene = QGraphicsScene()
-                if os.path.exists(preview_path):
-                    # Load preview image
-                    pixmap = QPixmap(preview_path)
-                    pixmap_item = QGraphicsPixmapItem(pixmap)
-                    scene.addItem(pixmap_item)
-                else:
-                    # No preview image found
-                    placeholder_text = QGraphicsTextItem("[ No Preview ]")
-                    placeholder_text.setFont(QFont("Arial", 12))
-                    scene.addItem(placeholder_text)
-                
-                # Set the scene for modPreview QGraphicsView
-                self.modPreview.setScene(scene)
+                # Load images from the mod directory
+                self.carousel_images = [] # Empty existing carousel_images
+                for root, dirs, files in os.walk(mod_directory):
+                    for file in files:
+                        if(file.lower().endswith(('.png', '.jpg'))):
+                            self.carousel_images.append(os.path.join(root, file))
+                self.toggleWidget([self.previewModBackButton, self.previewModNextButton], len(self.carousel_images) > 1) # Enable carousel if more than 1 image, else disable
+                self.carousel_idx = 0
+                self.displayCurrentImage()  # Display the first image in the carousel
             else:
                 # Handle case where no item is selected in the list
-                self.modNameLabel.setText("")
+                self.previewModLabel.setText("")
                 scene = QGraphicsScene()
-                self.modPreview.setScene(scene)
+                self.previewModImage.setScene(scene)
         else:
             # Handle unknown mod_status
-            self.modNameLabel.setText("")
+            self.previewModLabel.setText("")
             scene = QGraphicsScene()
-            self.modPreview.setScene(scene)
+            self.previewModImage.setScene(scene)
 
 
-    def populatePatchSelector(self):
-
-        patch_dir = os.path.join(self.selectedDirectoryLabel.text(), "PatchScripts")  # Directory containing .py and .exe files
-
-        if not os.path.exists(patch_dir):
-            self.logMessage(f'PATCH - Directory {normalizePath(patch_dir)} does not exist.', Color.WARNING)
-            # Disable ability to patch directory if directory does not exist missing
-            self.toggleWidget([self.patchSelector, self.patchButton], False)
-            return
-
-        # Clear any existing items
-        self.patchSelector.clear()
-        
-        # List all files in the patch directory
-        files = os.listdir(patch_dir)
-        
-        # Filter files to include only .py and .exe files
-        py_exe_files = [f for f in files if f.endswith(".py") or f.endswith(".exe")]
-        
-        # Add filtered files to the combobox
-        self.patchSelector.addItems(py_exe_files)
-
-        # Enable/Disable ability to patch if a .py or .exe file exists
-        if self.patchSelector.count() < 1:
-            self.toggleWidget([self.patchSelector, self.patchButton], False)
-            self.logMessage(f"PATCH - No patches found in {normalizePath(patch_dir)}")
-        else:
-            self.toggleWidget([self.patchSelector, self.patchButton], True)
-
-
-    def runPatch(self):
-        try:
-            selected_script = os.path.join(os.getcwd(), "PatchScripts", self.patchSelector.currentText())
-            if os.path.exists(selected_script) and os.path.isfile(selected_script):
-                #*******************************************************************************************************************************************
-                #               UNCOMMENT BEFORE CONVERTING TO EXE
-                # self.runScript(selected_script, self.selectedDirectoryLabel.text())
-                #*******************************************************************************************************************************************
-                self.logMessage(f"RUNNING {selected_script}\n\tON {self.selectedDirectoryLabel.text()}")
+    def displayCurrentImage(self):
+        """Display the current image in the carousel."""
+        scene = QGraphicsScene()
+        if self.carousel_images:
+            image_path = self.carousel_images[self.carousel_idx]
+            pixmap = QPixmap(image_path)
+            
+            if pixmap.isNull():
+                placeholder_text = QGraphicsTextItem("[ Image Load Failed ]")
+                placeholder_text.setFont(QFont("Arial", 12))
+                scene.addItem(placeholder_text)
             else:
-                self.logMessage(f"PATCH - Failed to find [ {self.patchSelector.currentText()} ] in [{normalizePath(selected_script)}]", Color.WARNING)
-        except Exception as e:
-            self.logMessage(f"PATCH - Error: {e}", Color.ERROR)
+                # Get the dimensions of the QGraphicsView
+                view_width = self.previewModImage.viewport().width()
+                view_height = self.previewModImage.viewport().height()
+                # Scale the pixmap
+                scaled_pixmap = pixmap.scaled(view_width, view_height, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+                # Calculate cropping area
+                x_offset = (scaled_pixmap.width() - view_width) / 2
+                y_offset = (scaled_pixmap.height() - view_height) / 2
+                cropped_pixmap = scaled_pixmap.copy(x_offset, y_offset, view_width, view_height)
+
+                pixmap_item = QGraphicsPixmapItem(cropped_pixmap)
+                scene.addItem(pixmap_item)
+        else:
+            placeholder_text = QGraphicsTextItem()
+            placeholder_text = QGraphicsTextItem("[ No Preview ]")
+            placeholder_text.setFont(QFont("Arial", 12))
+            scene.addItem(placeholder_text)
+        
+        # Set the scene for previewModImage QGraphicsView
+        self.previewModImage.setScene(scene)
+        self.previewMergeImage.setScene(scene)
 
 
-    def runScript(self, script_path, target_directory):
+    def showNextImage(self):
+        """Show the next image in the carousel."""
+        if self.carousel_images:
+            self.carousel_idx = (self.carousel_idx + 1) % len(self.carousel_images)
+            self.displayCurrentImage()
+
+
+    def showPrevImage(self):
+        """Show the previous image in the carousel."""
+        if self.carousel_images:
+            self.carousel_idx = (self.carousel_idx - 1) % len(self.carousel_images)
+            self.displayCurrentImage()
+
+
+    def runScript(self, script_path, target_directory, args=[], input_data="\n"):
         """
         Runs a given script (either .py or .exe) on the specified directory.
 
         Parameters:
         script_path (str): The path to the script file to be executed.
         target_directory (str): The directory on which the script should operate.
+        args: (str): an array of flags and values to pass with the script's command
+        input_data (str, optional): Any key presses necessary to run the specified script
         """
         original_cwd = os.getcwd()  # Save current working directory
 
@@ -374,22 +424,25 @@ class Main(QMainWindow):
 
             if script_path.endswith('.py'):
                 # Use Popen to interact with subprocess
-                proc = subprocess.Popen(["python", script_path], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+                proc = subprocess.Popen(["python", script_path, *args], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
             elif script_path.endswith('.exe'):
-                proc = subprocess.Popen([script_path], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+                proc = subprocess.Popen([script_path, *args], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
             else:
                 raise ValueError("Script must be either a .py or .exe file.")
             
             # Optionally, you can send input to the subprocess
             # Here we simulate sending an 'enter' key press
-            proc.communicate(input='\n')
+            input_data = "\n"
+            stdout, stderr = proc.communicate(input=input_data)
+            print(f"stdout {stdout}\t\t stderr {stderr}")
+            # proc.communicate(input='\n')
 
             # Optionally, you can wait for the subprocess to finish
             proc.wait()
 
             # Check the result
             if proc.returncode == 0:
-                self.logMessage(f"Script executed successfully!", Color.SUCCESS)
+                self.logMessage(f"Script executed successfully!\n", Color.SUCCESS)
             else:
                 self.logMessage(f"Script returned error code {proc.returncode}.", Color.ERROR)
 
@@ -399,6 +452,122 @@ class Main(QMainWindow):
             # Restore original working directory
             os.chdir(original_cwd)
 
+
+    def runPatch(self):
+        """
+        Runs the Patch script. Logs messages as necessary using logMessage().
+        """
+        try:
+            patch_script = getScript(os.path.join(os.getcwd(), "Scripts"),"PATCH")
+            target_dir = os.path.join(os.getcwd(), "Mods")
+
+            self.logMessage("Running [PATCH] script")
+            self.runScript(patch_script, target_dir, [], "\n")
+        except Exception as e:
+            self.logMessage(f"Error: {e}", Color.ERROR)
+
+
+    def getMergeFlags(self):
+        """
+        Determines and compiles flags to use based on values set in the application.
+
+        Returns a dictionary containing all relevant flags.
+        """
+        # Flags that take args
+        kFlagVal = self.swapKeyLineEdit.text()              # --key
+        nFlagVal = (self.mergeNameLineEdit.text() if self.mergeNameLineEdit.text() != "" else "merged") + ".ini"    # --name
+        rFlagVal = self.mergeDirLineEdit.text() if self.mergeDirLineEdit.text() != "" else "."                      # --root
+
+        # Flags dont take args
+        aFlag = self.activeFlagCheckBox.isChecked()         # --active
+        cFlag = self.compressFlagCheckBox.isChecked()       # --compress
+        eFlag = self.enabledFlagCheckBox.isChecked()        # --enable
+        sFlag = self.storeFlagCheckBox.isChecked()          # --store
+        refFlag = self.reflectionFlagCheckBox.isChecked()   # --reflection DEPRECATED
+
+        result = {
+               "key": ["-k", kFlagVal],
+              "name": ["-n", nFlagVal],
+              "root": ["-r", rFlagVal],
+        }
+
+        if aFlag: result["active"] = ["-a"]
+        if cFlag: result["compress"] = ["-c"]
+        if eFlag: result["enable"] = ["-e"]
+        if sFlag: result["store"] = ["-s"]
+        if refFlag: result["reflection"] = ["-ref"] # DEPRECATED
+
+        # Save the last attempted key and name
+        self.saveSetting({"key": kFlagVal, "name": nFlagVal[:-4]})
+        
+        return result
+
+
+    def getModOrder(self, path, ignore):
+        base_dict = {}  # Dictionary holding base assumed order
+        new_order = []  # List taking assumed order user desires
+        
+        for root, dir, files in os.walk(path):
+            if "disabled" in root.lower():
+                continue
+            for file in files:
+                if "disabled" in file.lower() or ignore.lower() in file.lower():
+                    continue
+                if os.path.splitext(file)[1] == ".ini":
+                    base_dict[os.path.basename(root)] = len(base_dict)  # mod_name: idx
+        
+        for index in range(self.mergeModList.count()):
+            new_order.append( base_dict[self.mergeModList.item(index).text()] )
+
+        print(f"base_dict: {base_dict}")
+        print(f"\nnew : {new_order}\n")
+        return new_order
+
+
+    def runMerge(self):
+        """
+        Runs the Merge script. Logs messages as necessary using logMessage().
+        """
+        try:
+            merge_script = getScript(os.path.join(os.getcwd(), "Scripts", "Merge"),"MERGE")
+        except Exception as e:
+            self.logMessage(f"Error: {e}", Color.ERROR)
+            return
+        
+        # Gather selected flags & target directory
+        flags = self.getMergeFlags()
+        target_dir = flags["root"][1]
+
+        if not os.path.exists(target_dir):
+            self.logMessage(f"Merge directory may have been renamed or removed: {target_dir}", Color.ERROR)
+            return
+
+        # Enable flag ignores all other flags
+        if "enable" in flags:
+            self.logMessage(f"Enable flag detected. Will <u><i>NOT<i/></u> merge mods. Will only re-enable .ini files and mod directories", Color.WARNING)
+
+            # Enable any disabled directories
+            for root, dirs, files in os.walk(target_dir):
+                for dir in dirs:
+                    if dir.upper().startswith("DISABLED"):
+                        old_name = normalizePath( os.path.join(root, dir) )
+                        new_name = old_name[:-len(dir)] + dir[len("DISABLED"):]
+                        os.rename(old_name, new_name)
+                        self.logMessage(f"Enabled mod folder for mod: {os.path.basename(new_name)}")
+
+            # Enable .ini files via the merge script
+            use_flags = [*flags["root"], *flags["enable"]]
+
+            self.logMessage("Running [MERGE] script")
+            self.runScript(merge_script, target_dir, use_flags, "")
+        else:
+            use_flags = [item for sublist in flags.values() for item in sublist]
+            mod_order = self.getModOrder(flags["root"][1], flags["name"][1])
+            input_data = "\n"+ " ".join(map(str, mod_order)) + "\n"
+            
+            self.logMessage("Running [MERGE] script")
+            self.runScript(merge_script, target_dir, use_flags, input_data)
+    
 
     def logMessage(self, error_message, msg_type=Color.INFO):
         """
@@ -411,7 +580,115 @@ class Main(QMainWindow):
         current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         color = msg_type.value
         log_entry = f'[{current_time}] <span style="color:{color}">{error_message}</span>'
-        self.errorLogTextEdit.append(log_entry)
+        self.logTextEdit.append(log_entry)
+
+    
+    def setIconGraphicsView(self):
+        scene = QGraphicsScene()
+
+        image_path = findLogoImg()
+        pixmap = QPixmap(image_path)
+
+        if pixmap.isNull():
+                placeholder_text = QGraphicsTextItem("[ Set a LogoImg.png ]")
+                placeholder_text.setFont(QFont("Arial", 12))
+                scene.addItem(placeholder_text)
+        else:
+            # Get the dimensions of the QGraphicsView
+            view_width = self.IconGraphicsView.viewport().width()
+            view_height = self.IconGraphicsView.viewport().height()
+            # Scale the pixmap
+            scaled_pixmap = pixmap.scaled(view_width, view_height, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+            # Calculate cropping area
+            x_offset = (scaled_pixmap.width() - view_width) / 2
+            y_offset = (scaled_pixmap.height() - view_height) / 2
+            cropped_pixmap = scaled_pixmap.copy(x_offset, y_offset, view_width, view_height)
+
+            pixmap_item = QGraphicsPixmapItem(cropped_pixmap)
+            scene.addItem(pixmap_item)
+        
+        self.IconGraphicsView.setScene(scene)
+            
+
+'''
+=========================================================
+Class agnostic helpers
+These helper methods can be used independently of Main
+and are meant to improve code legibility or consistency.
+=========================================================
+'''
+
+def findLogoImg():
+    """
+    On the top level of the cwd, find and return the Logo image.
+    
+    Returns:
+        The path to the image. If no image is found, return an empty string
+    """
+    for root, dirs, files in os.walk(os.getcwd()):
+        for file in files:
+            if file.startswith("LogoImg.") and file.lower().endswith((".png", ".jpg")):
+                return os.path.join(root, file)
+        return "" # Not found on top level
+
+def findModDirectory(mod_name):
+    """
+    Find the directory containing the mod.
+
+    Args:
+        mod_name (str): The name of the mod to find.
+
+    Returns:
+        str: The full path to the directory containing the mod, or None if not found.
+    """
+    modding_dir = os.path.join(os.getcwd(), "Mods")
+    for root, dirs, files in os.walk(modding_dir):
+        for name in dirs:
+            if name == mod_name or name == f"DISABLED{mod_name}":
+                return os.path.join(root, name)
+    return ""
+
+def getScript(path, script_type="SCRIPT"):
+    """
+    Attempt to find a .py or .exe script at the top-most level of a path.
+
+    Parameters:
+    path (str): The path to check for scripts
+    script_type (str, optional): The type of script it is. Ex: MERGE
+    """
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Missing folder(s): {normalizePath(path)}")
+    
+    script = ""
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            if isExeOrPy(file):
+                return normalizePath(os.path.join(path, file))
+        # No valid file found    
+        raise FileNotFoundError(f"No valid [{script_type}] file found. Please ensure you have a valid [{script_type}] file in {normalizePath(path)}")
+
+def normalizePath(path):
+    """
+    Normalizes the type of slashes to use. Mainly to be used when displaying paths rather than working with them.
+
+    Args:
+        path (str): A path to a resource
+    Returns:
+        str: A normalized path, with all backslashes replaced with forwardslashes.
+    """
+    return path.replace("\\", "/")
+
+def isExeOrPy(path):
+    """
+    Checks if a path ends at a .exe or .py file. Case insensetive.
+
+    Args:
+        path (str): A path to a resource
+    Returns:
+        bool: True if path is a ".exe" or ".py" file. False if not.
+    """
+    return path.lower().endswith((".exe", ".py"))
+
 
 
 if __name__ == '__main__':
