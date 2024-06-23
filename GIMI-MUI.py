@@ -57,8 +57,6 @@ class Main(QMainWindow):
         self.clearPreviewAndRefresh()
         self.setIconGraphicsView()
 
-        # self.setFixedSize(500, 500);
-        
 
     def setUnicodeText(self):
         """
