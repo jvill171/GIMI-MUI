@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QGraphicsScene, QGraphicsPixmapItem, QGraphicsTextItem, QListWidgetItem
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import Qt, QSettings
-from PyQt5.QtGui import QPixmap, QFont
+from PyQt5.QtGui import QPixmap, QFont, QIcon
 import sys, os, datetime, subprocess
 from enum import Enum
 
@@ -25,10 +25,19 @@ class Main(QMainWindow):
         loadUi("main.ui", self)
         self.settings = QSettings("github.io/jvill171", "GIMI ModUI")  # Initialize QSettings
         self.initUI()
+        self.setIcon()  # Set the application icon
         
         self.carousel_images = []
         self.carousel_idx = 0
     
+
+    def setIcon(self):
+        for root, dirs, files in os.walk(os.getcwd()):
+            for file in files:
+                if file == "LogoImg.png" or file == "LogoImg.jpg":
+                    self.setWindowIcon(QIcon(os.path.join(root, file)))
+                    return;
+            return;
 
     def initUI(self):
         """
