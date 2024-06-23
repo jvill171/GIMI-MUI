@@ -247,21 +247,6 @@ QPushButton:hover{
       <property name="sortingEnabled">
        <bool>true</bool>
       </property>
-      <item>
-       <property name="text">
-        <string>Mod_1</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>Mod_2</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>Mod_3</string>
-       </property>
-      </item>
      </widget>
      <widget class="QListWidget" name="disabledModList">
       <property name="geometry">
@@ -292,21 +277,6 @@ QPushButton:hover{
       <property name="sortingEnabled">
        <bool>true</bool>
       </property>
-      <item>
-       <property name="text">
-        <string>DISABLEDMod4</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>DISABLEDMod5</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>DISABLEDMod6</string>
-       </property>
-      </item>
      </widget>
      <widget class="QLabel" name="disabledLabel">
       <property name="geometry">

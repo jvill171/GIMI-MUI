@@ -39,5 +39,13 @@ Mods/
 /Scripts/Merge/*.py
 /Scripts/*.py
 
+# Ignore PyInstaller build and distribution directories
+/build/
+/dist/
+
+# Ignore PyInstaller spec file
+*.spec
+
+
 # Include main.ui
 !main.ui
