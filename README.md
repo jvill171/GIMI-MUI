@@ -7,11 +7,17 @@ I independently created this application in order to piggyback on the existing f
 - Easily enable/disable mods
 - More easily use the merge script provided by SilentNightSound
 - More easily patch your files
+- Preview mods you're changing (you must add your own images)
 
 <b>Note:</b> If you use .py files for manage/merge, be sure to have python installed on your system.
 
 # Logo / Icon
 I couldnt think of a nice logo, so I decided to let users pick what logo the application should have. By default, it will be the provided logo, but you can swap in any `.png` or `.jpg` file in place of the existing `LogoImg.png`. Just make sure to rename it "`LogoImg`"
+
+# Preview images
+In order to have image previews appear on the side pane, you must place your own screenshots or images that you've downloaded into the appropriate mod folder. You may have more than 1 screenshot uploaded for a preview. Additionally, all screenshots must be either `.png` or `.jpg` format. I recommend you download the images provided wherever you download your mods from.
+
+It is recommended your images be as close to a 1:1 ratio as possible, otherwise they may get cut off in the preview.
 
 # File Structure
 `GIMI-MUI.exe` and `main.ui` must be on the same level in order for the app to function. In order to run a patch or merge script, you must place the files in the appropriate location. 
@@ -29,6 +35,7 @@ I couldnt think of a nice logo, so I decided to let users pick what logo the app
 
 # How to use with <i>GI-Model-Importer</i>
 The files add to `<i>GI-Model-Importer</i>` and require nothing more than a simple drag-and-drop into the 3dmigoto folder. In order to use this app with <i>GI-Model-Importer</i>, simplay place the above listed files/folders in the same folder as `3DMigoto Loader.exe`.
+
 
 Simplified file structure:
 ```bash
