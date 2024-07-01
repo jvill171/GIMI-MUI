@@ -4,9 +4,11 @@ from PyQt5.QtGui import QPixmap, QFont, QIcon
 import sys, os, datetime, subprocess, warnings
 from main_ui import Ui_MainWindow  # Ui_MainWindow is the class in main_ui.py
 from enum import Enum
+from assets import resources_rc  # Import the compiled resource module
+
 
 # Ignore the deprecation warning
-warnings.filterwarnings(action='ignore', category=DeprecationWarning, lineno=19)
+warnings.filterwarnings(action='ignore', category=DeprecationWarning, lineno=21)
 
 # Helper class for defining colors of logged messages
 class Color(Enum):
@@ -36,12 +38,15 @@ class Main(QMainWindow):
     
 
     def setIcon(self):
-        for root, dirs, files in os.walk(os.getcwd()):
+        """
+        Apply the logo icon
+        """
+        for root, _, files in os.walk(os.getcwd()):
             for file in files:
                 if file == "LogoImg.png" or file == "LogoImg.jpg":
                     self.setWindowIcon(QIcon(os.path.join(root, file)))
                     return;
-            return;
+            return; # Only observe top level
 
 
     def initUI(self):
@@ -61,6 +66,7 @@ class Main(QMainWindow):
         self.updateMergeButton()
         self.clearPreviewAndRefresh()
         self.setIconGraphicsView()
+        self.setLightDark() # Set light/dark mode from saved settings
 
 
     def setUnicodeText(self):
@@ -82,6 +88,7 @@ class Main(QMainWindow):
         Connects signals from various buttons to their respective slots.
         """
         # Buttons
+        self.ui.switchModeButton.clicked.connect(self.toggle_mode) # Light/Dark mode
         self.ui.findFolderButton.clicked.connect(self.browseMergeDir)
         self.ui.mergeModsButton.clicked.connect(self.runMerge)
         self.ui.refreshModsButton.clicked.connect(self.populateModLists)
@@ -109,6 +116,59 @@ class Main(QMainWindow):
         self.ui.tabWidget.currentChanged.connect(self.clearPreviewAndRefresh)
         
         
+    def setLightDark(self):
+        """
+        Get dark_mode setting from self.settings & set up light/dark mode
+            Default: False (Light mode)
+        """
+        self.dark_mode = self.settings.value("dark_mode", defaultValue=False, type=bool)
+        if self.dark_mode:
+            self.set_dark_mode()
+        else:
+            self.set_light_mode()
+    
+
+    def toggle_mode(self):
+        """
+        Toggle between light and dark mode
+        """
+        if self.dark_mode:
+            self.set_light_mode()
+        else:
+            self.set_dark_mode()
+        self.dark_mode = not self.dark_mode
+        self.settings.setValue("dark_mode", self.dark_mode)
+        
+    
+    def set_light_mode(self):
+        """
+        Apply Light mode styles to QMainWindow
+        """
+        self.ui.switchModeCircle.move(2, 2)
+        self.ui.switchModeCircle.setStyleSheet("background-color: white; border-radius: 6px; border: 1px solid gray;")
+        self.ui.switchModeFrame.setStyleSheet("background-color: lightgray; border-radius: 7px;")
+        
+        self.setStyleSheet(getMainStyles())
+
+    
+    def set_dark_mode(self):
+        """
+        Apply Dark mode styles to QMainWindow
+        """
+        self.ui.switchModeCircle.move(18, 2)
+        self.ui.switchModeCircle.setStyleSheet("background-color: gray; border-radius: 6px; border: 1px solid white;")
+        self.ui.switchModeFrame.setStyleSheet("background-color: darkgray; border-radius: 7px;")
+
+        self.setStyleSheet(getMainStyles() + """ 
+            #MainWindow, #centralwidget, #manageTab, #mergeTab{
+                background-color: #252530;
+            }
+            .QLabel, .QGroupBox, .QCheckBox:unchecked:enabled{
+                color: white;
+            }
+            """)
+
+
     def clearPreviewAndRefresh(self, index=0):
         """
         Clear the image preview data and refresh the respective mod lists
@@ -225,7 +285,7 @@ class Main(QMainWindow):
                     break
 
         self.updateMergeButton()    # Check if Merge button can be enabled
-        if self.ui.mergeModList.count() <= 1:
+        if self.ui.mergeDirLineEdit.text() != "" and self.ui.mergeModList.count() <= 1:
             self.logMessage("Less than 2 mods found. Unable to merge anything.", Color.WARNING)
         
 
@@ -596,31 +656,40 @@ class Main(QMainWindow):
 
     
     def setIconGraphicsView(self):
+        """
+        Set the logo image in the QGraphicsView.
+        If a user-provided image is not found, display the default LogoImg.ico.
+        """
         scene = QGraphicsScene()
 
+        # Try to load user-provided image
         image_path = findLogoImg()
-        pixmap = QPixmap(image_path)
+        user_pixmap = QPixmap(image_path)
 
-        if pixmap.isNull():
-                placeholder_text = QGraphicsTextItem("[ Set a LogoImg.png ]")
-                placeholder_text.setFont(QFont("Arial", 12))
-                scene.addItem(placeholder_text)
+        # Use user-provided image if it exists, otherwise use the embedded default image
+        if not user_pixmap.isNull():
+            pixmap = user_pixmap
         else:
-            # Get the dimensions of the QGraphicsView
-            view_width = self.ui.IconGraphicsView.viewport().width()
-            view_height = self.ui.IconGraphicsView.viewport().height()
-            # Scale the pixmap
-            scaled_pixmap = pixmap.scaled(view_width, view_height, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
-            # Calculate cropping area
-            x_offset = (scaled_pixmap.width() - view_width) / 2
-            y_offset = (scaled_pixmap.height() - view_height) / 2
-            cropped_pixmap = scaled_pixmap.copy(x_offset, y_offset, view_width, view_height)
+            pixmap = QPixmap(":/LogoImg")
 
-            pixmap_item = QGraphicsPixmapItem(cropped_pixmap)
-            scene.addItem(pixmap_item)
-        
+        # Get the dimensions of the QGraphicsView
+        view_width = self.ui.IconGraphicsView.viewport().width()
+        view_height = self.ui.IconGraphicsView.viewport().height()
+
+        # Scale the pixmap
+        scaled_pixmap = pixmap.scaled(view_width, view_height, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+
+        # Calculate cropping area
+        x_offset = (scaled_pixmap.width() - view_width) / 2
+        y_offset = (scaled_pixmap.height() - view_height) / 2
+        cropped_pixmap = scaled_pixmap.copy(x_offset, y_offset, view_width, view_height)
+
+        # Add the pixmap to the scene
+        pixmap_item = QGraphicsPixmapItem(cropped_pixmap)
+        scene.addItem(pixmap_item)
+
         self.ui.IconGraphicsView.setScene(scene)
-            
+
 
 '''
 =========================================================
@@ -689,7 +758,59 @@ def isExeOrPy(path):
     """
     return path.lower().endswith((".exe", ".py"))
 
+def getMainStyles():
+    styles = """
+    QPushButton {
+        color: black;
+        background-color: #C7E5C9; /* Green background */
+        border-radius: 5px;
+        border: 1px solid black;
+    }
 
+    QPushButton:hover {
+        color: black;
+        background-color: #A4CFA5; /* Darker green background on hover */
+    }
+
+    QPushButton:disabled {
+        background-color: #E5E5E5; /* Light grey background for disabled state */
+        border: 1px solid #BBBBBB; /* Light grey border for disabled state */
+        color: #999999; /* Light grey text for disabled state */
+    }
+
+    QListWidget {
+        border: 1px solid #AAAAAA;
+        padding: 1px;
+        border-radius: 5px;
+    }
+
+    #previewMergeNextButton, #previewMergeBackButton, #previewModNextButton, #previewModBackButton{
+        border: 1px solid #C0C0C0;
+        background-color: rgba(255, 255, 255, 0.3)
+    }
+    #previewMergeNextButton:hover, #previewMergeBackButton:hover, #previewModNextButton:hover, #previewModBackButton:hover{
+        border: 1px solid #AAAAAA;
+        background-color: rgba(255, 255, 255, 0.75)
+    }
+
+    QListWidget::item {
+        color: black;
+        padding: 2px;
+        margin: 2px; 
+        border: 1px solid rgba(0,0,0,0.2);
+    }
+    QListWidget::item:selected{
+        background-color: rgba(0,0,0, 0.15);
+        color: black;
+    }
+
+    QScrollBar::handle:vertical {
+        color: black;
+        background: lightgray; 
+        border: 1px solid gray;
+    }
+                           """
+    return styles
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
