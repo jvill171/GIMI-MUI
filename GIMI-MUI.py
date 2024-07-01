@@ -689,6 +689,7 @@ class Main(QMainWindow):
         scene.addItem(pixmap_item)
 
         self.ui.IconGraphicsView.setScene(scene)
+        self.setWindowIcon(QIcon(":/LogoImg"))
 
 
 '''
