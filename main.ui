@@ -32,54 +32,7 @@
    <string>MainWindow</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">/* Regular state */
-QPushButton {
-    background-color: #C7E5C9; /* Green background */
-    border-radius: 5px;
-	border: 1px solid black;
-}
-
-/* Hover state */
-QPushButton:hover {
-    background-color: #A4CFA5; /* Darker green background on hover */
-}
-
-/* Disabled state */
-QPushButton:disabled {
-    background-color: #E5E5E5; /* Light grey background for disabled state */
-    border: 1px solid #BBBBBB; /* Light grey border for disabled state */
-    color: #999999; /* Light grey text for disabled state */
-}
-
-QListWidget {
-    border: 1px solid #AAAAAA;
-    padding: 1px;
-    border-radius: 5px;
-}
-
-#previewMergeNextButton, #previewMergeBackButton, #previewModNextButton, #previewModBackButton{
-	border: 1px solid #C0C0C0;
-	background-color: rgba(255, 255, 255, 0.5)
-}
-#previewMergeNextButton:hover, #previewMergeBackButton:hover, #previewModNextButton:hover, #previewModBackButton:hover{
-	border: 1px solid #AAAAAA;
-	background-color: rgba(255, 255, 255, 0.75)
-}
-
-QListWidget::item {
-    padding: 2px;
-    margin: 2px; 
-    border: 1px solid rgba(0,0,0,0.2);
-}
-QListWidget::item:selected{
-  background-color: rgba(0,0,0, 0.15);
-  color: black;
-}
-
-QScrollBar::handle:vertical {
-    background: lightgray; 
-	border: 1px solid gray;
-}</string>
+   <string notr="true"/>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QTextEdit" name="logTextEdit">
@@ -474,7 +427,7 @@ QPushButton:hover{
        <string>Patch</string>
       </property>
      </widget>
-     <widget class="QLabel" name="label">
+     <widget class="QLabel" name="patchLabel">
       <property name="geometry">
        <rect>
         <x>490</x>
@@ -490,7 +443,7 @@ QPushButton:hover{
        <set>Qt::AlignCenter</set>
       </property>
      </widget>
-     <widget class="QLabel" name="enabledLabel_2">
+     <widget class="QLabel" name="enabledLabel">
       <property name="geometry">
        <rect>
         <x>98</x>
@@ -516,7 +469,7 @@ QPushButton:hover{
        <set>Qt::AlignCenter</set>
       </property>
      </widget>
-     <widget class="QTextEdit" name="mergeNoticeTextEdit_2">
+     <widget class="QTextEdit" name="mangeNoticeTextEdit">
       <property name="geometry">
        <rect>
         <x>290</x>
@@ -574,47 +527,16 @@ border: none;</string>
        </font>
       </property>
       <property name="styleSheet">
-       <string notr="true">#scriptFlagsGBox .QCheckBox{
+       <string notr="true">QCheckBox{
 	padding: 0 4px ;
 }
-
-#scriptFlagsGBox *:checked{
+QCheckBox:checked{
 	background: #C7E5C9;
 }</string>
       </property>
       <property name="title">
        <string>Script flags</string>
       </property>
-      <widget class="QCheckBox" name="reflectionFlagCheckBox">
-       <property name="enabled">
-        <bool>false</bool>
-       </property>
-       <property name="geometry">
-        <rect>
-         <x>390</x>
-         <y>80</y>
-         <width>85</width>
-         <height>21</height>
-        </rect>
-       </property>
-       <property name="font">
-        <font>
-         <pointsize>9</pointsize>
-        </font>
-       </property>
-       <property name="cursor">
-        <cursorShape>PointingHandCursor</cursorShape>
-       </property>
-       <property name="toolTip">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:10pt; font-weight:600; color:#b30000;&quot;&gt;DEPRECATED. DO NOT USE.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-size:10pt;&quot;&gt;Applies reflection fix for 3.0+ characters&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-size:10pt; font-weight:600; text-decoration: underline;&quot;&gt;Default:&lt;/span&gt;&lt;span style=&quot; font-size:10pt;&quot;&gt; False&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-       </property>
-       <property name="text">
-        <string>--reflection</string>
-       </property>
-       <property name="checked">
-        <bool>false</bool>
-       </property>
-      </widget>
       <widget class="QCheckBox" name="storeFlagCheckBox">
        <property name="geometry">
         <rect>
@@ -979,7 +901,7 @@ p, li { white-space: pre-wrap; }
         <string>Find Folder...</string>
        </property>
       </widget>
-      <widget class="QLabel" name="label_3">
+      <widget class="QLabel" name="mergeReqLabel">
        <property name="geometry">
         <rect>
          <x>630</x>
@@ -1017,7 +939,7 @@ p, li { white-space: pre-wrap; }
        <enum>QAbstractItemView::InternalMove</enum>
       </property>
      </widget>
-     <widget class="QLabel" name="label_2">
+     <widget class="QLabel" name="mergeModLabel">
       <property name="geometry">
        <rect>
         <x>20</x>
@@ -1228,6 +1150,93 @@ Reset Order</string>
      <string>Log</string>
     </property>
    </widget>
+   <widget class="QFrame" name="switchModeFrame">
+    <property name="geometry">
+     <rect>
+      <x>754</x>
+      <y>10</y>
+      <width>32</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color: lightgray;
+border-radius: 7px;
+</string>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::Box</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Plain</enum>
+    </property>
+    <property name="lineWidth">
+     <number>0</number>
+    </property>
+    <widget class="QPushButton" name="switchModeCircle ">
+     <property name="geometry">
+      <rect>
+       <x>2</x>
+       <y>2</y>
+       <width>12</width>
+       <height>12</height>
+      </rect>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">background-color: white;
+border-radius: 6px; /* assuming the button's size is 24x24 */
+border: 1px solid gray;
+</string>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QLabel" name="switchModeLabel">
+    <property name="geometry">
+     <rect>
+      <x>679</x>
+      <y>10</y>
+      <width>71</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Light / Dark</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="switchModeButton">
+    <property name="geometry">
+     <rect>
+      <x>679</x>
+      <y>10</y>
+      <width>110</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgba(0,0,0,0);
+background-color: rgba(0,0,0,0);
+border: none;</string>
+    </property>
+    <property name="text">
+     <string>PushButton</string>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QStatusBar" name="statusbar">
+   <property name="sizeGripEnabled">
+    <bool>false</bool>
+   </property>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -1239,11 +1248,21 @@ Reset Order</string>
     </rect>
    </property>
   </widget>
-  <widget class="QStatusBar" name="statusbar">
-   <property name="sizeGripEnabled">
-    <bool>false</bool>
+  <action name="lightStyleAction">
+   <property name="text">
+    <string>Light</string>
    </property>
-  </widget>
+  </action>
+  <action name="darkStyleAction">
+   <property name="text">
+    <string>Dark</string>
+   </property>
+  </action>
+  <action name="customStyleAction">
+   <property name="text">
+    <string>Custom</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>
