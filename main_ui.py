@@ -22,54 +22,7 @@ class Ui_MainWindow(object):
         MainWindow.setSizePolicy(sizePolicy)
         MainWindow.setMinimumSize(QtCore.QSize(798, 723))
         MainWindow.setMaximumSize(QtCore.QSize(798, 723))
-        MainWindow.setStyleSheet("/* Regular state */\n"
-"QPushButton {\n"
-"    background-color: #C7E5C9; /* Green background */\n"
-"    border-radius: 5px;\n"
-"    border: 1px solid black;\n"
-"}\n"
-"\n"
-"/* Hover state */\n"
-"QPushButton:hover {\n"
-"    background-color: #A4CFA5; /* Darker green background on hover */\n"
-"}\n"
-"\n"
-"/* Disabled state */\n"
-"QPushButton:disabled {\n"
-"    background-color: #E5E5E5; /* Light grey background for disabled state */\n"
-"    border: 1px solid #BBBBBB; /* Light grey border for disabled state */\n"
-"    color: #999999; /* Light grey text for disabled state */\n"
-"}\n"
-"\n"
-"QListWidget {\n"
-"    border: 1px solid #AAAAAA;\n"
-"    padding: 1px;\n"
-"    border-radius: 5px;\n"
-"}\n"
-"\n"
-"#previewMergeNextButton, #previewMergeBackButton, #previewModNextButton, #previewModBackButton{\n"
-"    border: 1px solid #C0C0C0;\n"
-"    background-color: rgba(255, 255, 255, 0.5)\n"
-"}\n"
-"#previewMergeNextButton:hover, #previewMergeBackButton:hover, #previewModNextButton:hover, #previewModBackButton:hover{\n"
-"    border: 1px solid #AAAAAA;\n"
-"    background-color: rgba(255, 255, 255, 0.75)\n"
-"}\n"
-"\n"
-"QListWidget::item {\n"
-"    padding: 2px;\n"
-"    margin: 2px; \n"
-"    border: 1px solid rgba(0,0,0,0.2);\n"
-"}\n"
-"QListWidget::item:selected{\n"
-"  background-color: rgba(0,0,0, 0.15);\n"
-"  color: black;\n"
-"}\n"
-"\n"
-"QScrollBar::handle:vertical {\n"
-"    background: lightgray; \n"
-"    border: 1px solid gray;\n"
-"}")
+        MainWindow.setStyleSheet("")
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.logTextEdit = QtWidgets.QTextEdit(self.centralwidget)
@@ -231,12 +184,12 @@ class Ui_MainWindow(object):
         self.patchButton.setFont(font)
         self.patchButton.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
         self.patchButton.setObjectName("patchButton")
-        self.label = QtWidgets.QLabel(self.manageTab)
-        self.label.setGeometry(QtCore.QRect(490, 10, 251, 61))
-        self.label.setAlignment(QtCore.Qt.AlignCenter)
-        self.label.setObjectName("label")
-        self.enabledLabel_2 = QtWidgets.QLabel(self.manageTab)
-        self.enabledLabel_2.setGeometry(QtCore.QRect(98, 17, 100, 21))
+        self.patchLabel = QtWidgets.QLabel(self.manageTab)
+        self.patchLabel.setGeometry(QtCore.QRect(490, 10, 251, 61))
+        self.patchLabel.setAlignment(QtCore.Qt.AlignCenter)
+        self.patchLabel.setObjectName("patchLabel")
+        self.enabledLabel = QtWidgets.QLabel(self.manageTab)
+        self.enabledLabel.setGeometry(QtCore.QRect(98, 17, 100, 21))
         font = QtGui.QFont()
         font.setPointSize(12)
         font.setBold(False)
@@ -244,14 +197,14 @@ class Ui_MainWindow(object):
         font.setUnderline(False)
         font.setWeight(50)
         font.setKerning(True)
-        self.enabledLabel_2.setFont(font)
-        self.enabledLabel_2.setAlignment(QtCore.Qt.AlignCenter)
-        self.enabledLabel_2.setObjectName("enabledLabel_2")
-        self.mergeNoticeTextEdit_2 = QtWidgets.QTextEdit(self.manageTab)
-        self.mergeNoticeTextEdit_2.setGeometry(QtCore.QRect(290, 20, 171, 191))
-        self.mergeNoticeTextEdit_2.setStyleSheet("background: #E0E0E0")
-        self.mergeNoticeTextEdit_2.setReadOnly(True)
-        self.mergeNoticeTextEdit_2.setObjectName("mergeNoticeTextEdit_2")
+        self.enabledLabel.setFont(font)
+        self.enabledLabel.setAlignment(QtCore.Qt.AlignCenter)
+        self.enabledLabel.setObjectName("enabledLabel")
+        self.mangeNoticeTextEdit = QtWidgets.QTextEdit(self.manageTab)
+        self.mangeNoticeTextEdit.setGeometry(QtCore.QRect(290, 20, 171, 191))
+        self.mangeNoticeTextEdit.setStyleSheet("background: #E0E0E0")
+        self.mangeNoticeTextEdit.setReadOnly(True)
+        self.mangeNoticeTextEdit.setObjectName("mangeNoticeTextEdit")
         self.IconGraphicsView = QtWidgets.QGraphicsView(self.manageTab)
         self.IconGraphicsView.setGeometry(QtCore.QRect(288, 287, 175, 175))
         self.IconGraphicsView.setStyleSheet("background-color: rgba(0,0,0,0);\n"
@@ -265,23 +218,13 @@ class Ui_MainWindow(object):
         font = QtGui.QFont()
         font.setPointSize(9)
         self.scriptFlagsGBox.setFont(font)
-        self.scriptFlagsGBox.setStyleSheet("#scriptFlagsGBox .QCheckBox{\n"
+        self.scriptFlagsGBox.setStyleSheet("QCheckBox{\n"
 "    padding: 0 4px ;\n"
 "}\n"
-"\n"
-"#scriptFlagsGBox *:checked{\n"
+"QCheckBox:checked{\n"
 "    background: #C7E5C9;\n"
 "}")
         self.scriptFlagsGBox.setObjectName("scriptFlagsGBox")
-        self.reflectionFlagCheckBox = QtWidgets.QCheckBox(self.scriptFlagsGBox)
-        self.reflectionFlagCheckBox.setEnabled(False)
-        self.reflectionFlagCheckBox.setGeometry(QtCore.QRect(390, 80, 85, 21))
-        font = QtGui.QFont()
-        font.setPointSize(9)
-        self.reflectionFlagCheckBox.setFont(font)
-        self.reflectionFlagCheckBox.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-        self.reflectionFlagCheckBox.setChecked(False)
-        self.reflectionFlagCheckBox.setObjectName("reflectionFlagCheckBox")
         self.storeFlagCheckBox = QtWidgets.QCheckBox(self.scriptFlagsGBox)
         self.storeFlagCheckBox.setGeometry(QtCore.QRect(300, 80, 62, 21))
         font = QtGui.QFont()
@@ -391,25 +334,25 @@ class Ui_MainWindow(object):
         self.findFolderButton.setFont(font)
         self.findFolderButton.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
         self.findFolderButton.setObjectName("findFolderButton")
-        self.label_3 = QtWidgets.QLabel(self.scriptFlagsGBox)
-        self.label_3.setGeometry(QtCore.QRect(630, 85, 91, 21))
+        self.mergeReqLabel = QtWidgets.QLabel(self.scriptFlagsGBox)
+        self.mergeReqLabel.setGeometry(QtCore.QRect(630, 85, 91, 21))
         font = QtGui.QFont()
         font.setPointSize(10)
-        self.label_3.setFont(font)
-        self.label_3.setObjectName("label_3")
+        self.mergeReqLabel.setFont(font)
+        self.mergeReqLabel.setObjectName("mergeReqLabel")
         self.mergeModList = QtWidgets.QListWidget(self.mergeTab)
         self.mergeModList.setGeometry(QtCore.QRect(20, 180, 256, 271))
         self.mergeModList.viewport().setProperty("cursor", QtGui.QCursor(QtCore.Qt.ArrowCursor))
         self.mergeModList.setStyleSheet("background: #eafefe")
         self.mergeModList.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
         self.mergeModList.setObjectName("mergeModList")
-        self.label_2 = QtWidgets.QLabel(self.mergeTab)
-        self.label_2.setGeometry(QtCore.QRect(20, 155, 251, 21))
+        self.mergeModLabel = QtWidgets.QLabel(self.mergeTab)
+        self.mergeModLabel.setGeometry(QtCore.QRect(20, 155, 251, 21))
         font = QtGui.QFont()
         font.setPointSize(12)
-        self.label_2.setFont(font)
-        self.label_2.setAlignment(QtCore.Qt.AlignCenter)
-        self.label_2.setObjectName("label_2")
+        self.mergeModLabel.setFont(font)
+        self.mergeModLabel.setAlignment(QtCore.Qt.AlignCenter)
+        self.mergeModLabel.setObjectName("mergeModLabel")
         self.mergeNoticeTextEdit = QtWidgets.QTextEdit(self.mergeTab)
         self.mergeNoticeTextEdit.setGeometry(QtCore.QRect(290, 280, 171, 171))
         self.mergeNoticeTextEdit.setStyleSheet("background: #E0E0E0")
@@ -474,15 +417,51 @@ class Ui_MainWindow(object):
         font.setWeight(50)
         self.logLabel.setFont(font)
         self.logLabel.setObjectName("logLabel")
+        self.switchModeFrame = QtWidgets.QFrame(self.centralwidget)
+        self.switchModeFrame.setGeometry(QtCore.QRect(754, 10, 32, 16))
+        self.switchModeFrame.setStyleSheet("background-color: lightgray;\n"
+"border-radius: 7px;\n"
+"")
+        self.switchModeFrame.setFrameShape(QtWidgets.QFrame.Box)
+        self.switchModeFrame.setFrameShadow(QtWidgets.QFrame.Plain)
+        self.switchModeFrame.setLineWidth(0)
+        self.switchModeFrame.setObjectName("switchModeFrame")
+        self.switchModeCircle  = QtWidgets.QPushButton(self.switchModeFrame)
+        self.switchModeCircle .setGeometry(QtCore.QRect(2, 2, 12, 12))
+        self.switchModeCircle .setStyleSheet("background-color: white;\n"
+"border-radius: 6px; /* assuming the button\'s size is 24x24 */\n"
+"border: 1px solid gray;\n"
+"")
+        self.switchModeCircle .setText("")
+        self.switchModeCircle .setObjectName("switchModeCircle ")
+        self.switchModeLabel = QtWidgets.QLabel(self.centralwidget)
+        self.switchModeLabel.setGeometry(QtCore.QRect(679, 10, 71, 17))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        self.switchModeLabel.setFont(font)
+        self.switchModeLabel.setAlignment(QtCore.Qt.AlignCenter)
+        self.switchModeLabel.setObjectName("switchModeLabel")
+        self.switchModeButton = QtWidgets.QPushButton(self.centralwidget)
+        self.switchModeButton.setGeometry(QtCore.QRect(679, 10, 110, 17))
+        self.switchModeButton.setStyleSheet("color: rgba(0,0,0,0);\n"
+"background-color: rgba(0,0,0,0);\n"
+"border: none;")
+        self.switchModeButton.setObjectName("switchModeButton")
         MainWindow.setCentralWidget(self.centralwidget)
-        self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 798, 21))
-        self.menubar.setObjectName("menubar")
-        MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
         self.statusbar.setSizeGripEnabled(False)
         self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
+        self.menubar = QtWidgets.QMenuBar(MainWindow)
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 798, 21))
+        self.menubar.setObjectName("menubar")
+        MainWindow.setMenuBar(self.menubar)
+        self.lightStyleAction = QtWidgets.QAction(MainWindow)
+        self.lightStyleAction.setObjectName("lightStyleAction")
+        self.darkStyleAction = QtWidgets.QAction(MainWindow)
+        self.darkStyleAction.setObjectName("darkStyleAction")
+        self.customStyleAction = QtWidgets.QAction(MainWindow)
+        self.customStyleAction.setObjectName("customStyleAction")
 
         self.retranslateUi(MainWindow)
         self.tabWidget.setCurrentIndex(0)
@@ -505,9 +484,9 @@ class Ui_MainWindow(object):
         self.previewModNextButton.setText(_translate("MainWindow", "▶"))
         self.previewModBackButton.setText(_translate("MainWindow", "◀"))
         self.patchButton.setText(_translate("MainWindow", "Patch"))
-        self.label.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-size:10pt;\">Need to patch your game files?<br/>Run the patch!<br/></span><span style=\" font-size:10pt; font-weight:600;\">Note:</span><span style=\" font-size:10pt;\"> Must add the file patch yourself</span></p></body></html>"))
-        self.enabledLabel_2.setText(_translate("MainWindow", "ENABLED"))
-        self.mergeNoticeTextEdit_2.setHtml(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+        self.patchLabel.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-size:10pt;\">Need to patch your game files?<br/>Run the patch!<br/></span><span style=\" font-size:10pt; font-weight:600;\">Note:</span><span style=\" font-size:10pt;\"> Must add the file patch yourself</span></p></body></html>"))
+        self.enabledLabel.setText(_translate("MainWindow", "ENABLED"))
+        self.mangeNoticeTextEdit.setHtml(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
 "</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:8.25pt; font-weight:400; font-style:normal;\">\n"
@@ -515,8 +494,6 @@ class Ui_MainWindow(object):
 "<p align=\"center\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:10pt; color:#000000;\">If you manually moved or rename files in the File Explorer, you may have issues when trying to Enable or Disable a mod. Please press the Refresh Mod Lists button whenever you move or rename files manually.</span></p></body></html>"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.manageTab), _translate("MainWindow", "Manage"))
         self.scriptFlagsGBox.setTitle(_translate("MainWindow", "Script flags"))
-        self.reflectionFlagCheckBox.setToolTip(_translate("MainWindow", "<html><head/><body><p><span style=\" font-size:10pt; font-weight:600; color:#b30000;\">DEPRECATED. DO NOT USE.</span></p><p><span style=\" font-size:10pt;\">Applies reflection fix for 3.0+ characters</span></p><p><span style=\" font-size:10pt; font-weight:600; text-decoration: underline;\">Default:</span><span style=\" font-size:10pt;\"> False</span></p></body></html>"))
-        self.reflectionFlagCheckBox.setText(_translate("MainWindow", "--reflection"))
         self.storeFlagCheckBox.setToolTip(_translate("MainWindow", "<html><head/><body><p><span style=\" font-size:10pt;\">Use to keep the original .ini files enabled after completion.</span></p><p><span style=\" font-size:10pt; font-weight:600; text-decoration: underline;\">Default:</span><span style=\" font-size:10pt;\"> False</span></p></body></html>"))
         self.storeFlagCheckBox.setText(_translate("MainWindow", "--store"))
         self.enabledFlagCheckBox.setToolTip(_translate("MainWindow", "<html><head/><body><p><span style=\" font-size:10pt;\">Re-enable disabled .ini files</span></p><p><span style=\" font-size:10pt; font-weight:600; text-decoration: underline;\">Default:</span><span style=\" font-size:10pt;\"> False</span></p></body></html>"))
@@ -549,8 +526,8 @@ class Ui_MainWindow(object):
         self.mergeDirLineEdit.setPlaceholderText(_translate("MainWindow", "C:/location/of/mods/to/merge"))
         self.findFolderButton.setToolTip(_translate("MainWindow", "<html><head/><body><p><span style=\" font-size:10pt;\">Find folder containing mods to merge. <br/></span></p><p><span style=\" font-size:10pt; font-weight:600; text-decoration: underline;\">Note</span><span style=\" font-size:10pt; font-weight:600;\">: </span><span style=\" font-size:10pt;\">Will look for mods at all depths within the folder</span></p></body></html>"))
         self.findFolderButton.setText(_translate("MainWindow", "Find Folder..."))
-        self.label_3.setText(_translate("MainWindow", "<html><head/><body><p><span style=\" font-weight:600; color:#ff0000;\">* </span>= REQUIRED</p></body></html>"))
-        self.label_2.setText(_translate("MainWindow", "Mods to be merged"))
+        self.mergeReqLabel.setText(_translate("MainWindow", "<html><head/><body><p><span style=\" font-weight:600; color:#ff0000;\">* </span>= REQUIRED</p></body></html>"))
+        self.mergeModLabel.setText(_translate("MainWindow", "Mods to be merged"))
         self.mergeNoticeTextEdit.setHtml(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
@@ -568,3 +545,8 @@ class Ui_MainWindow(object):
         self.previewMergeBackButton.setText(_translate("MainWindow", "◀"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.mergeTab), _translate("MainWindow", "Merge"))
         self.logLabel.setText(_translate("MainWindow", "Log"))
+        self.switchModeLabel.setText(_translate("MainWindow", "Light / Dark"))
+        self.switchModeButton.setText(_translate("MainWindow", "PushButton"))
+        self.lightStyleAction.setText(_translate("MainWindow", "Light"))
+        self.darkStyleAction.setText(_translate("MainWindow", "Dark"))
+        self.customStyleAction.setText(_translate("MainWindow", "Custom"))
