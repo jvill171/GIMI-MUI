@@ -34,10 +34,11 @@ Thumbs.db
 # Exclude .lnk files
 *.lnk
 
-#Exclude sandbox directories
+#Exclude sandbox directories/files
 Mods/
 /Scripts/Merge/*.py
 /Scripts/*.py
+myNotes.txt
 
 # Ignore PyInstaller build and distribution directories
 /build/
@@ -45,7 +46,3 @@ Mods/
 
 # Ignore PyInstaller spec file
 *.spec
-
-
-# Include main.ui
-!main.ui
